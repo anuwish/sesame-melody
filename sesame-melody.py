@@ -7,7 +7,7 @@ import numpy as np
 
 # Taken from http://flothesof.github.io/pyqt-microphone-fft-application.html
 class MicrophoneRecorder(object):
-    def __init__(self, rate=4000, chunksize=1024):
+    def __init__(self, rate=40000, chunksize=1024):
         self.rate = rate
         self.chunksize = chunksize
         self.p = pyaudio.PyAudio()
@@ -143,7 +143,8 @@ class LiveFFTWidget(QtGui.QWidget):
         # bottom plot
         self.ax_bottom = self.main_figure.figure.add_subplot(212)
         self.ax_bottom.set_ylim(0, 1)
-        self.ax_bottom.set_xlim(0, self.freq_vect.max())
+        #self.ax_bottom.set_xlim(0, self.freq_vect.max())
+        self.ax_bottom.set_xlim(0, 4000)
         self.ax_bottom.set_xlabel(u'frequency (Hz)', fontsize=6)
         # line objects        
         self.line_top, = self.ax_top.plot(self.time_vect, 
