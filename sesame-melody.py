@@ -7,7 +7,7 @@ import numpy as np
 
 # Taken from http://flothesof.github.io/pyqt-microphone-fft-application.html
 class MicrophoneRecorder(object):
-    def __init__(self, rate=40000, chunksize=1024):
+    def __init__(self, rate=48000, chunksize=2048):
         self.rate = rate
         self.chunksize = chunksize
         self.p = pyaudio.PyAudio()
