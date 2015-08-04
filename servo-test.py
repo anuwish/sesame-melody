@@ -2,14 +2,34 @@ import RPi.GPIO as GPIO
 import time
 import os
 
-# Pin 7 als Ausgang deklarieren
-#GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(7, GPIO.OUT)
+PIN = 7
 
-servo = GPIO.PWM(7, 50)
-servo.start(10)
-time.sleep(0.1)
-servo.stop()
 
-GPIO.cleanup()
+def neutral(s):
+  s.start(7.5)
+  time.sleep(1)
+  s.stop()
+
+def open(s):
+  s.start(10)
+  time.sleep(0.5)
+  s.stop()
+
+def close(s):
+  s.start(5)
+  time.sleep(0.5)
+  s.stop()
+
+def main():
+  #GPIO.setwarnings(False)
+  GPIO.setmode(GPIO.BOARD)
+  GPIO.setup(PIN, GPIO.OUT)
+
+  servo = GPIO.PWM(PIN, 50)
+
+  close(servo)
+  open(servo)
+
+  GPIO.cleanup()
+
+main()

@@ -2,6 +2,7 @@ import alsaaudio, struct
 from aubio.task import *
 from collections import deque
 from copy import deepcopy
+from itertools import groupby
  
 # constants
 CHANNELS    = 1
@@ -13,8 +14,8 @@ PITCHALG    = aubio_pitch_yin
 PITCHOUT    = aubio_pitchm_freq
 
 # audio levels 
-AUDIO_GAIN  = 90
-AUDIO_MIN_ENERGY = 0.5
+AUDIO_GAIN  = 80
+AUDIO_MIN_ENERGY = 0.1
 
 # activate microphone and set gain
 mixer = alsaaudio.Mixer(control='Mic', cardindex=0)
@@ -134,6 +135,7 @@ def chunks(l, n):
 # main loop
 runflag = 1
 dq_alltones = deque(maxlen=100)
+last_tone = (None, None)
 while runflag:
  
   # read data from audio input
@@ -162,8 +164,15 @@ while runflag:
       if freq != RATE and energy>AUDIO_MIN_ENERGY:
         print freq2tonestr(freq, energy)
         #print freq2tone(freq, energy)
-        dq_alltones.append(freq2tone(freq, energy))
+        tone = freq2tone(freq, energy)
+        if (tone[0] == last_tone[0]):
+          dq_alltones.append(last_tone)
+        last_tone = deepcopy(tone)
         #print dq
   
   if len(dq_alltones) > 10:
-    
+    list_tones = [(a,b) for (a,b) in [(key,len(list(group))) for key, group in groupby(dq_alltones, lambda x: x[0])] if b>0]
+    print list_tones
+
+
+
