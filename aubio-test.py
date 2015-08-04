@@ -1,5 +1,7 @@
 import alsaaudio, struct
 from aubio.task import *
+from collections import deque
+from copy import deepcopy
  
 # constants
 CHANNELS    = 1
@@ -9,9 +11,18 @@ FRAMESIZE   = 235
 FRAMESIZE_AUBIO = 235
 PITCHALG    = aubio_pitch_yin
 PITCHOUT    = aubio_pitchm_freq
+
+# audio levels 
+AUDIO_GAIN  = 90
+AUDIO_MIN_ENERGY = 0.5
+
+# activate microphone and set gain
+mixer = alsaaudio.Mixer(control='Mic', cardindex=0)
+mixer.setrec(1)
+mixer.setvolume(AUDIO_GAIN, 0, alsaaudio.PCM_CAPTURE)
  
 # set up audio input
-recorder=alsaaudio.PCM(type=alsaaudio.PCM_CAPTURE, device='sysdefault:CARD=Device')
+recorder=alsaaudio.PCM(type=alsaaudio.PCM_CAPTURE, device='sysdefault:CARD=Headset')
 recorder.setchannels(CHANNELS)
 recorder.setrate(RATE)
 recorder.setformat(INFORMAT)
@@ -99,12 +110,21 @@ tonedict = {
   440.0*tone_dist**36  : "a4",
 }
  
-def freq2tone(freq,energy):
+def freq2tonestr(freq,energy):
   for f,s in tonedict.iteritems():
     rel_dist = (f-freq)/f
     if abs(rel_dist) < 0.03:
       return "{:>10} ({:10.4f}),   f={:10.4f},   e={:10.4f},   r={:10.4f}".format(s,f,freq,energy,rel_dist)
   return     "{:>10} ({:10.4f}),   f={:10.4f},   e={:10.4f}".format("---", 0, freq, energy)
+
+
+def freq2tone(freq,energy):
+  for f,s in tonedict.iteritems():
+    rel_dist = (f-freq)/f
+    if abs(rel_dist) < 0.03:
+      return (s,f,freq,energy,rel_dist)
+  return ("---",0,freq,energy,0)
+
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
@@ -113,6 +133,7 @@ def chunks(l, n):
 
 # main loop
 runflag = 1
+dq_alltones = deque(maxlen=100)
 while runflag:
  
   # read data from audio input
@@ -138,5 +159,11 @@ while runflag:
       # find energy of audio frame
       energy = vec_local_energy(buf)
   
-      if freq != RATE and energy>1.0:
-        print freq2tone(freq, energy)
+      if freq != RATE and energy>AUDIO_MIN_ENERGY:
+        print freq2tonestr(freq, energy)
+        #print freq2tone(freq, energy)
+        dq_alltones.append(freq2tone(freq, energy))
+        #print dq
+  
+  if len(dq_alltones) > 10:
+    
