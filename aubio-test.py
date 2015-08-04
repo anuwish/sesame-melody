@@ -163,7 +163,7 @@ while runflag:
       energy = vec_local_energy(buf)
   
       if freq != RATE and energy>AUDIO_MIN_ENERGY:
-        print freq2tonestr(freq, energy)
+        print "   last tone: " + freq2tonestr(freq, energy)
         #print freq2tone(freq, energy)
         tone = freq2tone(freq, energy)
         if (tone[0] == last_tone[0]):
@@ -174,7 +174,7 @@ while runflag:
   
   if update:
     list_tones = [(a,b) for (a,b) in [(key,len(list(group))) for key, group in groupby(dq_alltones, lambda x: x[0])] if b>0]
-    print list_tones
+    print " tone sequence: " + str(list_tones)
     update = False
 
 
