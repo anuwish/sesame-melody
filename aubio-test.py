@@ -136,6 +136,7 @@ def chunks(l, n):
 runflag = 1
 dq_alltones = deque(maxlen=100)
 last_tone = (None, None)
+update = True
 while runflag:
  
   # read data from audio input
@@ -167,12 +168,14 @@ while runflag:
         tone = freq2tone(freq, energy)
         if (tone[0] == last_tone[0]):
           dq_alltones.append(last_tone)
+          update = True
         last_tone = deepcopy(tone)
         #print dq
   
-  if len(dq_alltones) > 10:
+  if update:
     list_tones = [(a,b) for (a,b) in [(key,len(list(group))) for key, group in groupby(dq_alltones, lambda x: x[0])] if b>0]
     print list_tones
+    update = False
 
 
 
