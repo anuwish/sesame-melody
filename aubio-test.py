@@ -110,12 +110,15 @@ tonedict = {
   440.0*tone_dist**35  : "gis4",
   440.0*tone_dist**36  : "a4",
 }
- 
+
+def tone_unified(s):
+  return s.strip("'").strip(",").strip("1").strip("2").strip("3").strip("4").upper()
+
 def freq2tonestr(freq,energy):
   for f,s in tonedict.iteritems():
     rel_dist = (f-freq)/f
     if abs(rel_dist) < 0.03:
-      return "{:>10} ({:10.4f}),   f={:10.4f},   e={:10.4f},   r={:10.4f}".format(s,f,freq,energy,rel_dist)
+      return "{:>10} ({:10.4f}),   f={:10.4f},   e={:10.4f},   r={:10.4f}".format(tone_unified(s),f,freq,energy,rel_dist)
   return     "{:>10} ({:10.4f}),   f={:10.4f},   e={:10.4f}".format("---", 0, freq, energy)
 
 
@@ -123,7 +126,7 @@ def freq2tone(freq,energy):
   for f,s in tonedict.iteritems():
     rel_dist = (f-freq)/f
     if abs(rel_dist) < 0.03:
-      return (s,f,freq,energy,rel_dist)
+      return (tone_unified(s),f,freq,energy,rel_dist)
   return ("---",0,freq,energy,0)
 
 
