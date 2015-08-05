@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+from RPIO import PWM
 import time
 import os
 
