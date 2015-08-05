@@ -10,7 +10,12 @@ http://raspberrypi.stackexchange.com/questions/19705/usb-card-as-my-default-audi
 
 Using the [RPIO](http://pythonhosted.org/RPIO/index.html) python module the servo control works with PIN 12/GPIO 18 and its hardware PWM as signal PIN. See [servo-hpwm-test.py](/servo-hpwm-test.py) for a working example. (I also tried the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) module with less success as it is using a not that stable software emulated PWM; see [servo-test.py](/servo-test.py))
 
-Some Links:
+### Wiring
+* PIN2 +5V (red)
+* PIN6 GND (brown)
+* PIN12 PWM signal (yellow)
+
+### Some links
 * http://pythonhosted.org/RPIO/index.html
 * http://stackoverflow.com/questions/20081286/controlling-a-servo-with-raspberry-pi-using-the-hardware-pwm-with-wiringpi
 * http://raspberrypi.stackexchange.com/questions/298/can-i-use-the-gpio-for-pulse-width-modulation-pwm
