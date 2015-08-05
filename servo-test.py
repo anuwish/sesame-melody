@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+from RPIO import PWM
 import time
 import os
 
@@ -71,7 +72,7 @@ def main():
   GPIO.setup(PIN, GPIO.OUT)
 
   servo = GPIO.PWM(PIN, BASE_FREQ)
-  init(servo)
+  #init(servo)
  
   # manual
   servo.start(pulse_length(180))
@@ -85,8 +86,8 @@ def main():
   set_POS(0)
   
   # automated
-  move(servo,180)
-  move(servo,90)
+  #move(servo,180)
+  #move(servo,90)
   #init(servo)
   #time.sleep(2)
   
