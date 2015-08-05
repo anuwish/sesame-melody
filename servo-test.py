@@ -19,10 +19,14 @@ MAX_POS = 100.0 * MAX_PULSE_WIDTH/BASE_PERIOD
 NEUTRAL_POS = 0.5 * (MAX_POS + MIN_POS)
 
 T_PER_60 = 0.17 # tested, not for sure
+T_MAX = ANGLE_RANGE/60.0 * T_PER_60
 
 # log current position as hardware feedback is not possible
 # thus, an initialisation value is necessary, took center position
 POS = 0.5 * ANGLE_RANGE
+
+print "Config:"
+print "angle range", ANGLE_RANGE, "base freq", BASE_FREQ, "base period", BASE_PERIOD, "min/max pulse width", MIN_PULSE_WIDTH, MAX_PULSE_WIDTH, "min/max pos", MIN_POS, MAX_POS, "neutral pos", NEUTRAL_POS, "t per 60", T_PER_60, "initial pos", POS
 
 def set_POS(angle):
   global POS
@@ -46,27 +50,20 @@ def duration(angle):
 
 def init(servo):
   # initialise servo, move to inital POS
-  print "Initialise servo"
+  print "Initialise servo at pos", POS
   servo.start(pulse_length(POS))
-  time.sleep(ANGLE_RANGE/60.0 * T_PER_60)
+  time.sleep(T_MAX)
   servo.stop()
   time.sleep(1)
 
 def move(servo, angle):
   # move 'servo' to 'angle'
+  print "Move servo to", angle
   servo.start(pulse_length(angle))
   time.sleep(duration(angle))
+  #time.sleep(T_MAX)
   servo.stop()
-
-
-# define open and close states
-def open(servo):
-  print "Move servo to open position"
-  move(servo, 180)
-
-def close(servo):
-  print "Move servo to close position"
-  move(servo, 0)
+  time.sleep(0.5)
 
 
 def main():
@@ -75,14 +72,22 @@ def main():
   GPIO.setup(PIN, GPIO.OUT)
 
   servo = GPIO.PWM(PIN, BASE_FREQ)
-  init(servo)
-  time.sleep(2)
   
-  #neutral(servo)
-  open(servo)
-  close(servo)
-  #open(servo)
-
+  # manual
+  servo.start(pulse_length(180))
+  time.sleep(T_MAX)
+  servo.stop()
+  servo.start(pulse_length(0))
+  time.sleep(T_MAX)
+  servo.stop()
+  set_POS(0)
+  
+  # automated
+  move(servo,180)
+  move(servo,0)
+  #init(servo)
+  #time.sleep(2)
+  
   GPIO.cleanup()
 
 main()
