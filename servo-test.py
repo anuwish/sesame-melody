@@ -8,7 +8,7 @@ PIN = 7
 # the servo is a 'TowerPro SG90' or similar
 # http://www.servodatabase.com/servo/towerpro/sg90
 # with a pulse width of 500-2400 micro-seconds
-# at an PWM base frequency of 50Hz, a period of 20ms
+# at an PWM base frequency of 50Hz and a period of 20ms
 ANGLE_RANGE = 180 # tested, not for sure
 BASE_FREQ = 50    # user setting
 BASE_PERIOD = 1000.0 * 1/BASE_FREQ
@@ -25,7 +25,6 @@ T_MAX = ANGLE_RANGE/60.0 * T_PER_60
 # thus, an initialisation value is necessary, took center position
 POS = 0.5 * ANGLE_RANGE
 
-print "Config:"
 print "angle range", ANGLE_RANGE, "base freq", BASE_FREQ, "base period", BASE_PERIOD, "min/max pulse width", MIN_PULSE_WIDTH, MAX_PULSE_WIDTH, "min/max pos", MIN_POS, MAX_POS, "neutral pos", NEUTRAL_POS, "t per 60", T_PER_60, "initial pos", POS
 
 def set_POS(angle):
@@ -72,19 +71,22 @@ def main():
   GPIO.setup(PIN, GPIO.OUT)
 
   servo = GPIO.PWM(PIN, BASE_FREQ)
-  
+  init(servo)
+ 
   # manual
   servo.start(pulse_length(180))
   time.sleep(T_MAX)
   servo.stop()
+  time.sleep(1)
   servo.start(pulse_length(0))
   time.sleep(T_MAX)
   servo.stop()
+  time.sleep(1)
   set_POS(0)
   
   # automated
   move(servo,180)
-  move(servo,0)
+  move(servo,90)
   #init(servo)
   #time.sleep(2)
   
