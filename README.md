@@ -5,6 +5,14 @@ Python-based framework for melody recognition on a Raspberry Pi.
 
 http://raspberrypi.stackexchange.com/questions/19705/usb-card-as-my-default-audio-device
 
+## LED
+
+LED is up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module, see [led-test.py](/led-test.py]. 
+
+### Wiring
+* PIN14 GND (longest/center LED pin)
+* PIN15 RED (next longest/right LED pin)
+* PIN16 GREEN (shortest/left LED pin)
 
 ## Servo
 
