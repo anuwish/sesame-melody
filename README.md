@@ -7,7 +7,7 @@ http://raspberrypi.stackexchange.com/questions/19705/usb-card-as-my-default-audi
 
 ## LED
 
-LED is up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module, see [led-test.py](/led-test.py]. 
+LED is up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module, see [led-test.py](/led-test.py). 
 
 ### Wiring
 * PIN14 GND (longest/center LED pin)
