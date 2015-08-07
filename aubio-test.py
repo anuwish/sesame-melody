@@ -12,6 +12,7 @@ FRAMESIZE   = 235
 FRAMESIZE_AUBIO = 235
 PITCHALG    = aubio_pitch_yin
 PITCHOUT    = aubio_pitchm_freq
+ONSETALG    = aubio_onset_complex
 
 # audio levels 
 AUDIO_GAIN  = 80
@@ -32,6 +33,7 @@ recorder.setperiodsize(FRAMESIZE)
 # set up pitch detect
 detect = new_aubio_pitchdetection(FRAMESIZE_AUBIO,FRAMESIZE_AUBIO/2,CHANNELS,
                                   RATE,PITCHALG,PITCHOUT)
+onset = new_aubio_onsetdetection(ONSETALG,FRAMESIZE_AUBIO,CHANNELS)
 buf = new_fvec(FRAMESIZE_AUBIO,CHANNELS)
 
 tone_dist = 2.0**(1.0/12.0)
@@ -152,28 +154,30 @@ while runflag:
     # convert to an array of floats
     floats = struct.unpack('f'*FRAMESIZE,data)
 
-    cc = chunks(floats, 235) 
+    #cc = chunks(floats, 235) 
 
-    for c in cc:
-      # copy floats into structure
-      for i in range(len(c)):
-        fvec_write_sample(buf, c[i], 0, i)
- 
-      # find pitch of audio frame
-      freq = aubio_pitchdetection(detect,buf)
- 
-      # find energy of audio frame
-      energy = vec_local_energy(buf)
-  
-      if freq != RATE and energy>AUDIO_MIN_ENERGY:
-        print "   last tone: " + freq2tonestr(freq, energy)
-        #print freq2tone(freq, energy)
-        tone = freq2tone(freq, energy)
-        if (tone[0] == last_tone[0]):
-          dq_alltones.append(last_tone)
-          update = True
-        last_tone = deepcopy(tone)
-        #print dq
+    #for c in cc:
+    # copy floats into structure
+    for i in range(len(floats)):
+      fvec_write_sample(buf, floats[i], 0, i)
+
+    # find pitch of audio frame
+    freq = aubio_pitchdetection(detect,buf)
+    #ovec = None
+    #aubio_onsetdetection(onset, ovec)
+
+    # find energy of audio frame
+    energy = vec_local_energy(buf)
+
+    if freq != RATE and energy>AUDIO_MIN_ENERGY:
+      print "   last tone: " + freq2tonestr(freq, energy)
+      #print freq2tone(freq, energy)
+      tone = freq2tone(freq, energy)
+      if (tone[0] == last_tone[0]):
+        dq_alltones.append(last_tone)
+        update = True
+      last_tone = deepcopy(tone)
+      #print dq
   
   if update:
     list_tones = [(a,b) for (a,b) in [(key,len(list(group))) for key, group in groupby(dq_alltones, lambda x: x[0])] if b>0]
