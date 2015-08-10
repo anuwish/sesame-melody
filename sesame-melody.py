@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import pyaudio as pa
-import aubio as ab
+#import pyaudio
+import aubio
 import numpy as np
+import pysoundcard as psc
 
 # configuration
 
@@ -25,7 +26,7 @@ def get_target_pitch():
 def create_pitch_alg(pitch_method="default", pitch_buffer_size=4*512,
                      pitch_hop_size=256, pitch_samplerate=44100,
                      pitch_tolerance=0.8, pitch_unit="midi"):
-    pitch_alg = ab.pitch(pitch_method, pitch_buffer_size, pitch_hop_size, pitch_samplerate)
+    pitch_alg = aubio.pitch(pitch_method, pitch_buffer_size, pitch_hop_size, pitch_samplerate)
     pitch_alg.set_tolerance(pitch_tolerance)
     pitch_alg.set_unit(pitch_unit)
     return pitch_alg
@@ -34,9 +35,24 @@ def create_pitch_alg(pitch_method="default", pitch_buffer_size=4*512,
 def create_onset_alg(onset_method="default", onset_buffer_size=512,
                      onset_hop_size=256, onset_samplerate=44100,
                      onset_threshold=0.):
-    onset_alg = ab.onset(onset_method, onset_buffer_size, onset_hop_size, onset_samplerate)
+    onset_alg = aubio.onset(onset_method, onset_buffer_size, onset_hop_size, onset_samplerate)
     onset_alg.set_threshold(onset_threshold)
     return onset_alg
+
+
+
+class SourceFile:
+    def __init__(self, filename, samplerate, hop_size):
+        self.filename = filename
+        self.samplerate = samplerate
+        self.hop_size = hop_size
+        self.aubio_source = aubio.source(self.filename, self.samplerate, self.hop_size)
+    def get_next_chunk(self):
+        return self.aubio_source()
+
+class SourceSoundcard:
+    def __init__(self):
+        self.test = None
 
 def main(opts):
     print "Do nothing serious"
@@ -45,12 +61,12 @@ def main(opts):
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()
 
-    onset_vec = ab.fvec(1)
-    pitch_vec = ab.fvec(1)
+    onset_vec = aubio.fvec(1)
+    pitch_vec = aubio.fvec(1)
 
     source = None
     if opts.filename is not None:
-        source = ab.source(opts.filename, opts.samplerate, opts.hop_size)
+        source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
 
     # use median
     use_median = True
@@ -64,7 +80,7 @@ def main(opts):
     # total number of frames read
     total_frames = 0
     while True:
-        samples, read = source()
+        samples, read = source.get_next_chunk()
         pitch = pitch_alg(samples)[0]
         confidence = pitch_alg.get_confidence()
         pitches += [pitch]
@@ -72,7 +88,6 @@ def main(opts):
         total_frames += read
         if read < opts.hop_size: break
 
-    print pitches
     skip = 1 # skip the first note
     pitches = np.array(pitches[skip:])
     confidences = np.array(confidences[skip:])
