@@ -48,11 +48,20 @@ class SourceFile:
         self.hop_size = hop_size
         self.aubio_source = aubio.source(self.filename, self.samplerate, self.hop_size)
     def get_next_chunk(self):
-        return self.aubio_source()
+        samples, read = self.aubio_source()
+        return samples
 
 class SourceSoundcard:
-    def __init__(self):
-        self.test = None
+    def __init__(self, samplerate, hop_size):
+        self.samplerate = samplerate
+        self.hop_size = hop_size
+        self.stream = psc.Stream(block_length = self.hop_size)#, samplerate=self.samplerate)
+        self.stream.start()
+    def get_next_chunk(self):
+        vec = self.stream.read(self.hop_size)
+        # mix down to mono
+        mono_vec = vec.sum(-1)/float(self.stream.input_channels)
+        return mono_vec
 
 def main(opts):
     print "Do nothing serious"
@@ -67,6 +76,8 @@ def main(opts):
     source = None
     if opts.filename is not None:
         source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
+    else:
+        source = SourceSoundcard(opts.samplerate, opts.hop_size)
 
     # use median
     use_median = True
@@ -80,13 +91,15 @@ def main(opts):
     # total number of frames read
     total_frames = 0
     while True:
-        samples, read = source.get_next_chunk()
+        samples = source.get_next_chunk()
+        # samples, read = source.get_next_chunk()
         pitch = pitch_alg(samples)[0]
+        print(pitch)
         confidence = pitch_alg.get_confidence()
         pitches += [pitch]
         confidences += [confidence]
-        total_frames += read
-        if read < opts.hop_size: break
+        # total_frames += read
+        # if read < opts.hop_size: break
 
     skip = 1 # skip the first note
     pitches = np.array(pitches[skip:])
