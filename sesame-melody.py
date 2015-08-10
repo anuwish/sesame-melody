@@ -51,17 +51,20 @@ class SourceFile:
         samples, read = self.aubio_source()
         return samples
 
+# TODO: find options to get it running on the raspberry pi
 class SourceSoundcard:
     def __init__(self, samplerate, hop_size):
         self.samplerate = samplerate
         self.hop_size = hop_size
-        self.stream = psc.Stream(block_length = self.hop_size)#, samplerate=self.samplerate)
+        self.stream = psc.Stream(block_length = self.hop_size, samplerate=self.samplerate)
         self.stream.start()
     def get_next_chunk(self):
         vec = self.stream.read(self.hop_size)
         # mix down to mono
         mono_vec = vec.sum(-1)/float(self.stream.input_channels)
         return mono_vec
+    def __del__(self):
+        self.stream.stop()
 
 def main(opts):
     print "Do nothing serious"
@@ -70,8 +73,8 @@ def main(opts):
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()
 
-    onset_vec = aubio.fvec(1)
-    pitch_vec = aubio.fvec(1)
+    #onset_vec = aubio.fvec(1)
+    #pitch_vec = aubio.fvec(1)
 
     source = None
     if opts.filename is not None:
@@ -79,9 +82,10 @@ def main(opts):
     else:
         source = SourceSoundcard(opts.samplerate, opts.hop_size)
 
-    # use median
-    use_median = True
-    median_size = 6
+    # TODO: Try to understand and rebuild aubionotes median implementation
+    # # use median
+    # use_median = True
+    # median_size = 6
 
 
 
