@@ -17,65 +17,7 @@ try:
 except:
     pass
 
-# target melody, bar 6 to 13
-def get_target_pitch():
-    target_pitch = [
-        "C6", "B5", "F5",                           # bar 06
-        "A5", "G5", "F5", "D5",                     # bar 07
-        "C5", "D5", "G4", "D5",                     # bar 08
-        "E4", "C4", "E4", "G4", "C5", "E5", "G5",   # bar 09
-        "C6", "B5", "F5",                           # bar 10
-        "A5", "G5", "F5", "D5",                     # bar 11
-        "C5", "E5", "D5", "E5",                     # bar 12
-        "D5", "C5"                                  # bar 13
-    ]
-    return target_pitch
-
-def get_target_pitch_midi():
-    target_pitch = [
-        84, 83, 77,                   # bar 06
-        81, 79, 77, 74,               # bar 07
-        72, 74, 67, 74,               # bar 08
-        64, 60, 64, 67, 72, 76, 79,   # bar 09
-        84, 83, 77,                   # bar 10
-        81, 79, 77, 74,               # bar 11
-        72, 76, 74, 76,               # bar 12
-        74, 72                        # bar 13
-    ]
-    return target_pitch
-
-
-
-# configure pitch detection
-def create_pitch_alg(pitch_method="default", pitch_buffer_size=4*512,
-                     pitch_hop_size=256, pitch_samplerate=44100,
-                     pitch_tolerance=0.8, pitch_unit="midi"):
-    pitch_alg = aubio.pitch(pitch_method, pitch_buffer_size, pitch_hop_size, pitch_samplerate)
-    pitch_alg.set_tolerance(pitch_tolerance)
-    pitch_alg.set_unit(pitch_unit)
-    return pitch_alg
-
-# configure onset detection
-def create_onset_alg(onset_method="default", onset_buffer_size=512,
-                     onset_hop_size=256, onset_samplerate=44100,
-                     onset_threshold=0.):
-    onset_alg = aubio.onset(onset_method, onset_buffer_size, onset_hop_size, onset_samplerate)
-    onset_alg.set_threshold(onset_threshold)
-    return onset_alg
-
-#configure level detection
-def create_level_alg(silence_threshold = -90. ):
-    return LevelAlg(silence_threshold)
-
-# Level Detection class wrapper
-class LevelAlg:
-    def __init__(self, silence_threshold):
-        self.silence_threshold = silence_threshold
-        self.level_detection_alg = aubio.level_detection
-    def __call__(self, chunk):
-        return self.level_detection_alg(chunk, self.silence_threshold)
-
-
+# sound sources
 class SourceFile:
     def __init__(self, filename, samplerate, hop_size):
         self.filename = filename
@@ -141,112 +83,127 @@ class SourceSoundcard:
     def __del__(self):
         self.stop()
 
-def main(opts, dq_alltones):
-    # inspired by aubionotes.c
 
-    input_device_pi = {
-       'default_high_input_latency': 0.046439909297052155,
-       'default_high_output_latency': 0.046439909297052155,
-       'default_low_input_latency': 0.042653061224489794,
-       'default_low_output_latency': 0.042653061224489794,
-       'default_sample_rate': opts.samplerate,
-       'device_index': 0,
-       'host_api_index': 0,
-       'input_channels': 1,
-       'input_latency': 0.042653061224489794,
-       'interleaved_data': True,
-       'name': u'Logitech USB Headset: USB Audio (hw:0,0)',
-       'output_channels': 2,
-       'output_latency': 0.042653061224489794,
-       'sample_format': np.float32,
-       'struct_version': 2
-    }
+# target melody, bar 6 to 13
+def get_target_pitch():
+    target_pitch = [
+        "C6", "B5", "F5",                           # bar 06
+        "A5", "G5", "F5", "D5",                     # bar 07
+        "C5", "D5", "G4", "D5",                     # bar 08
+        "E4", "C4", "E4", "G4", "C5", "E5", "G5",   # bar 09
+        "C6", "B5", "F5",                           # bar 10
+        "A5", "G5", "F5", "D5",                     # bar 11
+        "C5", "E5", "D5", "E5",                     # bar 12
+        "D5", "C5"                                  # bar 13
+    ]
+    return target_pitch
 
-    # config
-    median_size = 6
-    silence_level = -60. # db
+def get_target_pitch_midi():
+    target_pitch = [
+        84, 83, 77,                   # bar 06
+        81, 79, 77, 74,               # bar 07
+        72, 74, 67, 74,               # bar 08
+        64, 60, 64, 67, 72, 76, 79,   # bar 09
+        84, 83, 77,                   # bar 10
+        81, 79, 77, 74,               # bar 11
+        72, 76, 74, 76,               # bar 12
+        74, 72                        # bar 13
+    ]
+    return target_pitch
 
-    pitch_alg = create_pitch_alg()
-    onset_alg = create_onset_alg()
-    level_alg = create_level_alg(silence_level)
 
-    #onset_vec = aubio.fvec(1)
-    #pitch_vec = aubio.fvec(1)
 
-    input_device = True
-    if opts.pi:
-        input_device = input_device_pi
+# configure pitch detection
+def create_pitch_alg(pitch_method="default", pitch_buffer_size=4*512,
+                     pitch_hop_size=256, pitch_samplerate=44100,
+                     pitch_tolerance=0.8, pitch_unit="midi"):
+    pitch_alg = aubio.pitch(pitch_method, pitch_buffer_size, pitch_hop_size, pitch_samplerate)
+    pitch_alg.set_tolerance(pitch_tolerance)
+    pitch_alg.set_unit(pitch_unit)
+    return pitch_alg
 
-    source = None
-    if opts.filename is not None:
-        source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
-    else:
-        print opts.soundinterface
-        if opts.soundinterface == "alsa":
-            source = AlsaSoundcard(opts.samplerate, opts.hop_size, input_device)
-        elif opts.soundinterface == "pysoundcard":
-            source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
+# configure onset detection
+def create_onset_alg(onset_method="default", onset_buffer_size=512,
+                     onset_hop_size=256, onset_samplerate=44100,
+                     onset_threshold=0.):
+    onset_alg = aubio.onset(onset_method, onset_buffer_size, onset_hop_size, onset_samplerate)
+    onset_alg.set_threshold(onset_threshold)
+    return onset_alg
 
-    pitches = []
-    confidences = []
-    update = True
+#configure level detection
+def create_level_alg(silence_threshold = -90. ):
+    return LevelAlg(silence_threshold)
 
-    # total number of frames read
-    total_frames = 0
-    #median_buffer = deque(maxlen=median_size)
-    median_buffer = [ ]
-    run = True
-    found_onset = False
-    while run:
-        samples = source.get_next_chunk()
-        # samples, read = source.get_next_chunk()
-        level = level_alg(samples)#, silence_level)
-        onset = onset_alg(samples)[0]
-        pitch = pitch_alg(samples)[0]
-        confidence = pitch_alg.get_confidence()
-        # round(pitch_alg(samples)[0])
+# Level Detection class wrapper
+class LevelAlg:
+    def __init__(self, silence_threshold):
+        self.silence_threshold = silence_threshold
+        self.level_detection_alg = aubio.level_detection
+    def __call__(self, chunk):
+        return self.level_detection_alg(chunk, self.silence_threshold)
 
-        #deque.append(pitch)
-        # check for onset
-        if not found_onset:
-            if onset > 0. and level is not 1.:
-                #print "Found an onset! Starting to fill the buffer!"
-                found_onset = True
-                median_buffer.append(pitch)
-                #print(onset, pitch, confidence, level)
-            continue
-        else:
-            if onset > 0. or level is 1.:
-                #print "Found a new onset or silence! Start analysing notes in buffer."
-                med_pitch_array = np.around(np.array(median_buffer))
-                print med_pitch_array
-                med_pitch = np.median(med_pitch_array)
-                print med_pitch
-                dq_alltones.append(med_pitch)
-                median_buffer = []
+class NoteDetector(threading.Thread):
+    def __init__(self, source, dq, silence_level):
+        super(NoteDetector, self).__init__()
+        self.source = source
+        self.dq_external = dq
+        self.silence_level = silence_level
+        self.pitch_alg = create_pitch_alg()
+        self.onset_alg = create_onset_alg()
+        self.level_alg = create_level_alg(self.silence_level)
+
+    def run(self):
+        # config
+        pitches = []
+        confidences = []
+        update = True
+
+        # total number of frames read
+        total_frames = 0
+        #median_buffer = deque(maxlen=median_size)
+        median_buffer = [ ]
+        run = True
+        found_onset = False
+        while run:
+            samples = self.source.get_next_chunk()
+            level = self.level_alg(samples)
+            onset = self.onset_alg(samples)[0]
+            pitch = self.pitch_alg(samples)[0]
+            confidence = self.pitch_alg.get_confidence()
+            # check for onset
+            if not found_onset:
+                if onset > 0. and level is not 1.:
+                    #print "Found an onset! Starting to fill the buffer!"
+                    found_onset = True
+                    median_buffer.append(pitch)
+                    #print(onset, pitch, confidence, level)
+                continue
             else:
-                median_buffer.append(pitch)
-                #print(onset, pitch, confidence, level)
-            continue
-        # if confidence>0.9:
-        #     #print(onset, pitch, confidence)
-        #     dq_alltones.append((onset, pitch, confidence))
+                if onset > 0. or level is 1.:
+                    #print "Found a new onset or silence! Start analysing notes in buffer."
+                    med_pitch_array = np.around(np.array(median_buffer))
+                    #print med_pitch_array
+                    med_pitch = np.median(med_pitch_array)
+                    print med_pitch
+                    self.dq_external.append(med_pitch)
+                    median_buffer = []
+                else:
+                    median_buffer.append(pitch)
+                    #print(onset, pitch, confidence, level)
+                continue
+            # if confidence>0.9:
+            #     #print(onset, pitch, confidence)
+            #     self.dq_external.append((onset, pitch, confidence))
 
-    #     pitches += [pitch]
-    #     confidences += [confidence]
-    #     # total_frames += read
-    #     # if read < opts.hop_size: break
-    #
-    # skip = 1 # skip the first note
-    # pitches = np.array(pitches[skip:])
-    # confidences = np.array(confidences[skip:])
-    # times = [t * opts.hop_size for t in range(len(pitches))]
-
-
-
-
-    print pitches
-    return
+        #     pitches += [pitch]
+        #     confidences += [confidence]
+        #     # total_frames += read
+        #     # if read < opts.hop_size: break
+        #
+        # skip = 1 # skip the first note
+        # pitches = np.array(pitches[skip:])
+        # confidences = np.array(confidences[skip:])
+        # times = [t * opts.hop_size for t in range(len(pitches))]
 
 
 
@@ -324,8 +281,9 @@ class AnalyzeThread(threading.Thread):
     def run(self):
         while True:
             if len(self.dq_external) > 0:
-                (onset, pitch, confidence) = self.dq_external.popleft()
+                #(onset, pitch, confidence) = self.dq_external.popleft()
                 #print(onset, pitch, confidence)
+                pitch = self.dq_external.popleft()
                 if len(self.dq_ana) > 0 and self.dq_ana[-1][0] == pitch:
                     self.dq_ana[-1] = (self.dq_ana[-1][0], self.dq_ana[-1][1]+1)
                 else:
@@ -365,6 +323,62 @@ class AnalyzeThread(threading.Thread):
             #     self.print_len = len(self.dq_ana)
 
 
+def main(opts):
+    # inspired by aubionotes.c
+
+    input_device_pi = {
+       'default_high_input_latency': 0.046439909297052155,
+       'default_high_output_latency': 0.046439909297052155,
+       'default_low_input_latency': 0.042653061224489794,
+       'default_low_output_latency': 0.042653061224489794,
+       'default_sample_rate': opts.samplerate,
+       'device_index': 0,
+       'host_api_index': 0,
+       'input_channels': 1,
+       'input_latency': 0.042653061224489794,
+       'interleaved_data': True,
+       'name': u'Logitech USB Headset: USB Audio (hw:0,0)',
+       'output_channels': 2,
+       'output_latency': 0.042653061224489794,
+       'sample_format': np.float32,
+       'struct_version': 2
+    }
+
+
+
+    input_device = True
+    if opts.pi:
+        input_device = input_device_pi
+
+    source = None
+    if opts.filename is not None:
+        source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
+    else:
+        if opts.soundinterface == "alsa":
+            source = AlsaSoundcard(opts.samplerate, opts.hop_size, input_device)
+        elif opts.soundinterface == "pysoundcard":
+            source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
+
+    dq_alltones = deque(maxlen=10000)
+    if opts.dummy:
+        dummy(dq_alltones)
+    else:
+        notedetect = NoteDetector(source, dq_alltones, -60.)
+        notedetect.daemon = True
+        notedetect.start()
+
+
+    analyser = AnalyzeThread(dq_alltones)
+    analyser.daemon = True
+    analyser.start()
+
+    try:
+        while True: time.sleep(0.2)
+    except (KeyboardInterrupt, SystemExit):
+        print '\n! Received keyboard interrupt, quitting threads.\n'
+
+    return
+
 
 import sys
 if __name__ == "__main__":
@@ -383,15 +397,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dummy", dest='dummy', action='store_true')
 
 
-    dq_alltones = deque(maxlen=10000)
-
-    # t = AnalyzeThread(dq_alltones)
-    # t.daemon = True
-    # t.start()
-
     opts = parser.parse_args()
 
-    if opts.dummy:
-        dummy(dq_alltones)
-    else:
-        main(opts, dq_alltones)
+    main(opts)
