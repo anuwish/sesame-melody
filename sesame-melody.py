@@ -7,20 +7,41 @@ import pysoundcard as psc
 from collections import deque
 
 # configuration
+try:
+    import alsaaudio
+    mixer = alsaaudio.Mixer(control='Mic', cardindex=0)
+    mixer.setrec(1)
+    mixer.setvolume(80, 0, alsaaudio.PCM_CAPTURE)
+except:
+    pass
 
 # target melody, bar 6 to 13
 def get_target_pitch():
     target_pitch = [
-        "c3", "h2", "f2",                           # bar 06
-        "a2", "g2", "f2", "d2",                     # bar 07
-        "c2", "d2", "g1", "d2",                     # bar 08
-        "e1", "c1", "e1", "g1", "c2", "e2", "g2",   # bar 09
-        "c3", "h2", "f2",                           # bar 10
-        "a2", "g2", "f2", "d2",                     # bar 11
-        "c2", "e2", "d2", "e2",                     # bar 12
-        "d2", "c2"                                  # bar 13
+        "C6", "B5", "F5",                           # bar 06
+        "A5", "G5", "F5", "D5",                     # bar 07
+        "C5", "D5", "G4", "D5",                     # bar 08
+        "E4", "C4", "E4", "G4", "C5", "E5", "G5",   # bar 09
+        "C6", "B5", "F5",                           # bar 10
+        "A5", "G5", "F5", "D5",                     # bar 11
+        "C5", "E5", "D5", "E5",                     # bar 12
+        "D5", "C5"                                  # bar 13
     ]
     return target_pitch
+
+def get_target_pitch_midi():
+    target_pitch = [
+        "84", "83", "77",                           # bar 06
+        "81", "79", "77", "74",                     # bar 07
+        "72", "74", "67", "74",                     # bar 08
+        "64", "60", "64", "67", "72", "76", "79",   # bar 09
+        "84", "83", "77",                           # bar 10
+        "81", "79", "77", "74",                     # bar 11
+        "72", "76", "74", "76",                     # bar 12
+        "74", "72"                                  # bar 13
+    ]
+    return target_pitch
+
 
 
 # configure pitch detection
@@ -57,6 +78,7 @@ class SourceSoundcard:
     def __init__(self, samplerate, hop_size, input_device=True):
         self.samplerate = samplerate
         self.hop_size = hop_size
+        self.input_device = input_device
         self.stream = psc.Stream(block_length=self.hop_size,
                                  samplerate=self.samplerate,
                                  input_device=self.input_device)
@@ -78,29 +100,36 @@ class SourceSoundcard:
 def main(opts):
     # inspired by aubionotes.c
 
-    input_device = {
-        'default_high_input_latency': 0.012154195011337868,
-        'default_high_output_latency': 0.1,
-        'default_low_input_latency': 0.00199546485260771,
-        'default_low_output_latency': 0.01,
-        'default_sample_rate': 44100.0,
-        'device_index': 0,
-        'host_api_index': 0,
-        'input_channels': 2,
-        'input_latency': 0.00199546485260771,
-        'interleaved_data': True,
-        'name': u'Mikrofon (integr',
-        'output_channels': 0,
-        'output_latency': 0.01,
-        'sample_format': np.float32,
-        'struct_version': 2
+    input_device_pi = {
+       'default_high_input_latency': 0.046439909297052155,
+       'default_high_output_latency': 0.046439909297052155,
+       'default_low_input_latency': 0.042653061224489794,
+       'default_low_output_latency': 0.042653061224489794,
+       'default_sample_rate': opts.samplerate,
+       'device_index': 0,
+       'host_api_index': 0,
+       'input_channels': 1,
+       'input_latency': 0.042653061224489794,
+       'interleaved_data': True,
+       'name': u'Logitech USB Headset: USB Audio (hw:0,0)',
+       'output_channels': 2,
+       'output_latency': 0.042653061224489794,
+       'sample_format': np.float32,
+       'struct_version': 2
     }
+
 
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()
 
     #onset_vec = aubio.fvec(1)
     #pitch_vec = aubio.fvec(1)
+
+    input_device = True
+    if opts.pi:
+        input_device = input_device_pi
+
+    print input_device
 
     source = None
     if opts.filename is not None:
@@ -149,6 +178,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sesame Melody - Note detection")
     parser.add_argument("-f", "--file", dest="filename", default=None,
                         help="input file (.wav)", metavar="FILE")
+    parser.add_argument("-p", "--pi", dest='pi', action='store_true')
     parser.add_argument("-R", "--samplerate", dest="samplerate", default=44100,
                         help="sample rate in Hz", metavar="RATE")
     parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,

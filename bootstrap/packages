@@ -7,7 +7,6 @@ aptitude
 aptitude-common
 aspell
 aspell-en
-aubio-tools
 audacity
 audacity-data
 autoconf
@@ -202,8 +201,6 @@ libatk1.0-data
 libatlas3-base
 libatspi2.0-0:armhf
 libattr1:armhf
-libaubio2
-libaudio2:armhf
 libaudiofile1:armhf
 libaudit0
 libavahi-client3:armhf
@@ -769,7 +766,6 @@ pypy-upstream-dev
 pypy-upstream-doc
 pyqt4-dev-tools
 python
-python-aubio
 python-cairo
 python-configobj
 python-dateutil
