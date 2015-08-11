@@ -67,7 +67,6 @@ class SourceSoundcard:
         self.stream.stop()
 
 def main(opts):
-    print "Do nothing serious"
     # inspired by aubionotes.c
 
     pitch_alg = create_pitch_alg()
@@ -98,8 +97,9 @@ def main(opts):
         samples = source.get_next_chunk()
         # samples, read = source.get_next_chunk()
         pitch = pitch_alg(samples)[0]
-        print(pitch)
         confidence = pitch_alg.get_confidence()
+
+        print(pitch, confidence)
         pitches += [pitch]
         confidences += [confidence]
         # total_frames += read
