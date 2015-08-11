@@ -6,8 +6,7 @@ import numpy as np
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
-import threading
-import time
+import threading, time, difflib, random, struct
 
 # configuration
 try:
@@ -34,14 +33,14 @@ def get_target_pitch():
 
 def get_target_pitch_midi():
     target_pitch = [
-        "84", "83", "77",                           # bar 06
-        "81", "79", "77", "74",                     # bar 07
-        "72", "74", "67", "74",                     # bar 08
-        "64", "60", "64", "67", "72", "76", "79",   # bar 09
-        "84", "83", "77",                           # bar 10
-        "81", "79", "77", "74",                     # bar 11
-        "72", "76", "74", "76",                     # bar 12
-        "74", "72"                                  # bar 13
+        84, 83, 77,                   # bar 06
+        81, 79, 77, 74,               # bar 07
+        72, 74, 67, 74,               # bar 08
+        64, 60, 64, 67, 72, 76, 79,   # bar 09
+        84, 83, 77,                   # bar 10
+        81, 79, 77, 74,               # bar 11
+        72, 76, 74, 76,               # bar 12
+        74, 72                        # bar 13
     ]
     return target_pitch
 
@@ -88,12 +87,43 @@ class SourceFile:
         return samples
 
 # TODO: find options to get it running on the raspberry pi
+class AlsaSoundcard:
+    def __init__(self, samplerate, hop_size, input_device=True):
+        self.samplerate = int(samplerate)
+        self.hop_size = hop_size
+        self.input_device = input_device
+        self.framesize = int(940*float(self.samplerate)/44100.0)
+        self.stream = alsaaudio.PCM(type=alsaaudio.PCM_CAPTURE, device='sysdefault:CARD=Headset')
+        self.stream.setchannels(1)
+        self.stream.setrate(self.samplerate)
+        self.stream.setformat(alsaaudio.PCM_FORMAT_FLOAT_LE)
+        self.stream.setperiodsize(self.framesize)
+
+    def get_next_chunk(self):
+        length = 0
+        data = None
+        while length <= 0:
+            [length, data] = self.stream.read()
+        floats = np.array(struct.unpack('f'*self.framesize,data),dtype=np.float32)
+        return floats
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def __del__(self):
+        self.stop()
+
+
+# TODO: find options to get it running on the raspberry pi
 class SourceSoundcard:
     def __init__(self, samplerate, hop_size, input_device=True):
         self.samplerate = samplerate
-        self.hop_size = hop_size
+        self.hop_size = 1024
         self.input_device = input_device
-        self.stream = psc.Stream(block_length=self.hop_size,
+        self.stream = psc.Stream(block_length=16,
                                  samplerate=self.samplerate,
                                  input_device=self.input_device)
         self.stream.start()
@@ -151,7 +181,7 @@ def main(opts, dq_alltones):
     if opts.filename is not None:
         source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
     else:
-        source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
+        source = AlsaSoundcard(opts.samplerate, opts.hop_size, input_device)
 
     # TODO: Try to understand and rebuild aubionotes median implementation
 
@@ -219,18 +249,84 @@ def main(opts, dq_alltones):
     print pitches
     return
 
+
+
+def dummy(dq):
+    l_detect = [
+        (85.0, 1),
+        (84.0, 111),
+        (83.0, 123),
+        (77.0, 37),
+        (65.0, 1),
+        (81.0, 2),
+        (69.0, 16),
+        (81.0, 33),
+        (79.0, 79),
+        (77.0, 81),
+        (74.0, 78),
+        (72.0, 164),
+        (74.0, 80),
+        (67.0, 59),
+        (74.0, 16),
+        (76.0, 78),
+        (60.0, 33),
+        (64.0, 22),
+        (67.0, 36),
+        (72.0, 29),
+        (76.0, 37),
+        (79.0, 4),
+        (67.0, 11),
+        (84.0, 109),
+        (83.0, 118),
+        (77.0, 38),
+        (81.0, 9),
+        (69.0, 6),
+        (81.0, 4),
+        (69.0, 4),
+        (81.0, 34),
+        (79.0, 79),
+        (77.0, 80),
+        (74.0, 2),
+        (62.0, 1),
+        (74.0, 76),
+        (72.0, 167),
+        (76.0, 81),
+        (74.0, 59),
+        (76.0, 17),
+        (74.0, 149),
+        (72.0, 1),
+    ]
+    for i in range(0,random.randint(0, 100)):
+        tone = random.randint(72, 90)
+        for j in range(0, random.randint(1, 20)):
+            dq.append((0.0, tone, 0.11))
+    for p in l_detect:
+        for i in range(0, p[1]):
+            dq.append((0.0, p[0], 0.99))
+    for i in range(0,random.randint(0, 100)):
+        tone = random.randint(72, 90)
+        for j in range(0, random.randint(1, 20)):
+            dq.append((0.0, tone, 0.11))
+    while True:
+        time.sleep(1)
+
 class AnalyzeThread(threading.Thread):
     def __init__(self,dq):
         super(AnalyzeThread, self).__init__()
         self.dq_external=dq
         self.print_len = 0
         self.dq_ana = deque(maxlen=100)
+        self.threshold_neglect = 8
+        self.number_notes_consider = int(31*1.5)
+        self.threshold_detected = 0.6
+        self.max_ratio = 0.0
+        self.sleep_timer = 0.1
 
     def run(self):
         while True:
             if len(self.dq_external) > 0:
                 (onset, pitch, confidence) = self.dq_external.popleft()
-                print(onset, pitch, confidence)
+                #print(onset, pitch, confidence)
                 if len(self.dq_ana) > 0 and self.dq_ana[-1][0] == pitch:
                     self.dq_ana[-1] = (self.dq_ana[-1][0], self.dq_ana[-1][1]+1)
                 else:
@@ -243,6 +339,31 @@ class AnalyzeThread(threading.Thread):
                 for t in self.dq_ana:
                     print str(t[0]) + " #" + str(str(t[1]))
                 self.print_len = len(self.dq_ana)
+                time.sleep(self.sleep_timer)
+
+            list_tones = [i[0] for i in self.dq_ana if i[1] > self.threshold_neglect]
+            #print list_tones
+            sm=difflib.SequenceMatcher(None,get_target_pitch_midi(),list_tones[-self.number_notes_consider:])
+            if sm.ratio() > self.max_ratio:
+                self.max_ratio = sm.ratio()
+            print list_tones[-self.number_notes_consider:]
+            #print sm.ratio()
+            if sm.ratio() > self.threshold_detected:
+                print ""
+                print ""
+                print ""
+                print "YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")"
+                print "Analyzed list: "
+                print list_tones[-self.number_notes_consider:]
+                print ""
+                print ""
+                print ""
+
+            # if len(self.dq_ana) > self.print_len:
+            #     print
+            #     for t in self.dq_ana:
+            #         print str(t[0]) + " #" + str(str(t[1]))
+            #     self.print_len = len(self.dq_ana)
 
 
 
@@ -257,6 +378,7 @@ if __name__ == "__main__":
                         help="sample rate in Hz", metavar="RATE")
     parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,
                         help="hop size in bits", metavar="HOP")
+    parser.add_argument("-d", "--dummy", dest='dummy', action='store_true')
 
 
     dq_alltones = deque(maxlen=10000)
@@ -266,4 +388,8 @@ if __name__ == "__main__":
     # t.start()
 
     opts = parser.parse_args()
-    main(opts, dq_alltones)
+
+    if opts.dummy:
+        dummy(dq_alltones)
+    else:
+        main(opts, dq_alltones)
