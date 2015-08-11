@@ -181,14 +181,16 @@ class NoteDetector(threading.Thread):
             else:
                 if onset > 0. or level is 1.:
                     #print "Found a new onset or silence! Start analysing notes in buffer."
-                    med_pitch_array = np.around(np.array(median_buffer))
-                    #print med_pitch_array
-                    med_pitch = np.median(med_pitch_array)
-                    print med_pitch
-                    self.dq_external.append(med_pitch)
+                    if median_buffer: # check that buffer is not empty
+                        med_pitch_array = np.around(np.array(median_buffer))
+                        med_pitch = np.median(med_pitch_array)
+                        self.dq_external.append(med_pitch)
+                        print med_pitch_array
+                        print med_pitch
                     median_buffer = []
                 else:
-                    median_buffer.append(pitch)
+                    if not pitch == 0.0 and not confidence < 0.6:
+                        median_buffer.append(pitch)
                     #print(onset, pitch, confidence, level)
                 continue
             # if confidence>0.9:
