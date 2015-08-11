@@ -64,13 +64,17 @@ def create_onset_alg(onset_method="default", onset_buffer_size=512,
     onset_alg.set_threshold(onset_threshold)
     return onset_alg
 
-# configure level (silence) detection
+#configure level detection
+def create_level_alg(silence_threshold = -90. ):
+    return LevelAlg(silence_threshold)
+
+# Level Detection class wrapper
 class LevelAlg:
     def __init__(self, silence_threshold):
         self.silence_threshold = silence_threshold
-        self.level_detection_alg = aubio.level_detection()
-    def check(self, chunk):
-        self.silence_alg(chunk, silence_threshold)
+        self.level_detection_alg = aubio.level_detection
+    def __call__(self, chunk):
+        return self.level_detection_alg(chunk, self.silence_threshold)
 
 
 class SourceFile:
@@ -128,10 +132,13 @@ def main(opts, dq_alltones):
        'struct_version': 2
     }
 
+    # config
+    median_size = 6
+    silence_level = -60. # db
 
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()
-    #level_alg =
+    level_alg = create_level_alg(silence_level)
 
     #onset_vec = aubio.fvec(1)
     #pitch_vec = aubio.fvec(1)
@@ -147,9 +154,7 @@ def main(opts, dq_alltones):
         source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
 
     # TODO: Try to understand and rebuild aubionotes median implementation
-    # # use median
-    # use_median = True
-    # median_size = 6
+
 
 
 
@@ -159,34 +164,54 @@ def main(opts, dq_alltones):
 
     # total number of frames read
     total_frames = 0
-
+    #median_buffer = deque(maxlen=median_size)
+    median_buffer = [ ]
     run = True
-
+    found_onset = False
     while run:
         samples = source.get_next_chunk()
         # samples, read = source.get_next_chunk()
+        level = level_alg(samples)#, silence_level)
         onset = onset_alg(samples)[0]
-        pitch = round(pitch_alg(samples)[0])
-        #level =
+        pitch = pitch_alg(samples)[0]
         confidence = pitch_alg.get_confidence()
+        # round(pitch_alg(samples)[0])
 
+        #deque.append(pitch)
+        # check for onset
+        if not found_onset:
+            if onset > 0. and level is not 1.:
+                #print "Found an onset! Starting to fill the buffer!"
+                found_onset = True
+                median_buffer.append(pitch)
+                #print(onset, pitch, confidence, level)
+            continue
+        else:
+            if onset > 0. or level is 1.:
+                #print "Found a new onset or silence! Start analysing notes in buffer."
+                med_pitch_array = np.around(np.array(median_buffer))
+                print med_pitch_array
+                med_pitch = np.median(med_pitch_array)
+                print med_pitch
+                dq_alltones.append(med_pitch)
+                median_buffer = []
+            else:
+                median_buffer.append(pitch)
+                #print(onset, pitch, confidence, level)
+            continue
+        # if confidence>0.9:
+        #     #print(onset, pitch, confidence)
+        #     dq_alltones.append((onset, pitch, confidence))
 
-
-        #print(onset, pitch, confidence)
-
-        if confidence>0.9:
-            #print(onset, pitch, confidence)
-            dq_alltones.append((onset, pitch, confidence))
-
-        pitches += [pitch]
-        confidences += [confidence]
-        # total_frames += read
-        # if read < opts.hop_size: break
-
-    skip = 1 # skip the first note
-    pitches = np.array(pitches[skip:])
-    confidences = np.array(confidences[skip:])
-    times = [t * opts.hop_size for t in range(len(pitches))]
+    #     pitches += [pitch]
+    #     confidences += [confidence]
+    #     # total_frames += read
+    #     # if read < opts.hop_size: break
+    #
+    # skip = 1 # skip the first note
+    # pitches = np.array(pitches[skip:])
+    # confidences = np.array(confidences[skip:])
+    # times = [t * opts.hop_size for t in range(len(pitches))]
 
 
 
@@ -214,13 +239,12 @@ class AnalyzeThread(threading.Thread):
                 time.sleep(1)
 
             if len(self.dq_ana) > self.print_len:
-                print 
+                print
                 for t in self.dq_ana:
                     print str(t[0]) + " #" + str(str(t[1]))
                 self.print_len = len(self.dq_ana)
 
 
-dq_alltones = deque(maxlen=10000)
 
 import sys
 if __name__ == "__main__":
@@ -234,9 +258,12 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,
                         help="hop size in bits", metavar="HOP")
 
-    t = AnalyzeThread(dq_alltones)
-    t.daemon = True
-    t.start()
+
+    dq_alltones = deque(maxlen=10000)
+
+    # t = AnalyzeThread(dq_alltones)
+    # t.daemon = True
+    # t.start()
 
     opts = parser.parse_args()
     main(opts, dq_alltones)
