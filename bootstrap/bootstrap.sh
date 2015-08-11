@@ -9,6 +9,9 @@ sudo apt-get install python-pyrex
 #sudo pip install python-pyrex
 sudo pip install pyalsa
 sudo pip install pyalsaaudio
+sudo pip install waf
 
 git config --global user.email "pi@raspberry.local"
 git config --global user.name "Raspberry Pi"
+
+sh ./install-aubio.sh
