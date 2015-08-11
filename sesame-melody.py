@@ -85,20 +85,20 @@ class SourceSoundcard:
 def main(opts):
     # inspired by aubionotes.c
 
-    input_device = {
+    input_device_pi = {
        'default_high_input_latency': 0.046439909297052155,
        'default_high_output_latency': 0.046439909297052155,
-       'default_low_input_latency': 0.011609977324263039,
-       'default_low_output_latency': 0.011609977324263039,
-       'default_sample_rate': 44100.0,
+       'default_low_input_latency': 0.042653061224489794,
+       'default_low_output_latency': 0.042653061224489794,
+       'default_sample_rate': opts.samplerate,
        'device_index': 0,
        'host_api_index': 0,
        'input_channels': 1,
-       'input_latency': 0.011609977324263039,
+       'input_latency': 0.042653061224489794,
        'interleaved_data': True,
        'name': u'Logitech USB Headset: USB Audio (hw:0,0)',
        'output_channels': 2,
-       'output_latency': 0.011609977324263039,
+       'output_latency': 0.042653061224489794,
        'sample_format': np.float32,
        'struct_version': 2
     }
@@ -109,6 +109,12 @@ def main(opts):
 
     #onset_vec = aubio.fvec(1)
     #pitch_vec = aubio.fvec(1)
+
+    input_device = True
+    if opts.pi:
+        input_device = input_device_pi
+
+    print input_device
 
     source = None
     if opts.filename is not None:
@@ -156,6 +162,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sesame Melody - Note detection")
     parser.add_argument("-f", "--file", dest="filename", default=None,
                         help="input file (.wav)", metavar="FILE")
+    parser.add_argument("-p", "--pi", dest='pi', action='store_true')
     parser.add_argument("-R", "--samplerate", dest="samplerate", default=44100,
                         help="sample rate in Hz", metavar="RATE")
     parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,
