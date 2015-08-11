@@ -6,6 +6,8 @@ import numpy as np
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
+import threading
+import time
 
 # configuration
 try:
@@ -105,7 +107,7 @@ class SourceSoundcard:
     def __del__(self):
         self.stop()
 
-def main(opts):
+def main(opts, dq_alltones):
     # inspired by aubionotes.c
 
     input_device_pi = {
@@ -154,8 +156,6 @@ def main(opts):
     pitches = []
     confidences = []
     update = True
-    dq_alltones = deque(maxlen=100000)
-
 
     # total number of frames read
     total_frames = 0
@@ -166,7 +166,7 @@ def main(opts):
         samples = source.get_next_chunk()
         # samples, read = source.get_next_chunk()
         onset = onset_alg(samples)[0]
-        pitch = pitch_alg(samples)[0]
+        pitch = round(pitch_alg(samples)[0])
         #level =
         confidence = pitch_alg.get_confidence()
 
@@ -175,29 +175,13 @@ def main(opts):
         #print(onset, pitch, confidence)
 
         if confidence>0.9:
-            print(onset, pitch, confidence)
-
-            if len(dq_alltones) > 0 and dq_alltones[-1][0] == pitch:
-                dq_alltones[-1] = (dq_alltones[-1][0], dq_alltones[-1][1]+1)
-            else:
-                dq_alltones.append((pitch, 1))
-            update = True
+            #print(onset, pitch, confidence)
+            dq_alltones.append((onset, pitch, confidence))
 
         pitches += [pitch]
         confidences += [confidence]
         # total_frames += read
         # if read < opts.hop_size: break
-
-
-
-        # if update:
-        #     print
-        #     for t in dq_alltones:
-        #         print str(t[0]) + " #" + str(str(t[1]))
-        #     update = False
-        #     # list_tones = [(a,b) for (a,b) in [(key,len(list(group))) for key, group in groupby(dq_alltones, lambda x: x[0])] if b>0]
-        #     # print " tone sequence: " + str(list_tones)
-        #     # update = False
 
     skip = 1 # skip the first note
     pitches = np.array(pitches[skip:])
@@ -210,7 +194,33 @@ def main(opts):
     print pitches
     return
 
+class AnalyzeThread(threading.Thread):
+    def __init__(self,dq):
+        super(AnalyzeThread, self).__init__()
+        self.dq_external=dq
+        self.print_len = 0
+        self.dq_ana = deque(maxlen=100)
 
+    def run(self):
+        while True:
+            if len(self.dq_external) > 0:
+                (onset, pitch, confidence) = self.dq_external.popleft()
+                print(onset, pitch, confidence)
+                if len(self.dq_ana) > 0 and self.dq_ana[-1][0] == pitch:
+                    self.dq_ana[-1] = (self.dq_ana[-1][0], self.dq_ana[-1][1]+1)
+                else:
+                    self.dq_ana.append((pitch, 1))
+            else:
+                time.sleep(1)
+
+            if len(self.dq_ana) > self.print_len:
+                print 
+                for t in self.dq_ana:
+                    print str(t[0]) + " #" + str(str(t[1]))
+                self.print_len = len(self.dq_ana)
+
+
+dq_alltones = deque(maxlen=10000)
 
 import sys
 if __name__ == "__main__":
@@ -224,5 +234,9 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,
                         help="hop size in bits", metavar="HOP")
 
+    t = AnalyzeThread(dq_alltones)
+    t.daemon = True
+    t.start()
+
     opts = parser.parse_args()
-    main(opts)
+    main(opts, dq_alltones)
