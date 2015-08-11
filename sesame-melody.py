@@ -4,6 +4,7 @@
 import aubio
 import numpy as np
 import pysoundcard as psc
+from collections import deque
 
 # configuration
 
@@ -122,10 +123,11 @@ def main(opts):
     while True:
         samples = source.get_next_chunk()
         # samples, read = source.get_next_chunk()
+        onset = onset_alg(samples)[0]
         pitch = pitch_alg(samples)[0]
         confidence = pitch_alg.get_confidence()
 
-        print(pitch, confidence)
+        print(onset, pitch, confidence)
         pitches += [pitch]
         confidences += [confidence]
         # total_frames += read
