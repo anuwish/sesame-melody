@@ -17,16 +17,30 @@ except:
 # target melody, bar 6 to 13
 def get_target_pitch():
     target_pitch = [
-        "c3", "h2", "f2",                           # bar 06
-        "a2", "g2", "f2", "d2",                     # bar 07
-        "c2", "d2", "g1", "d2",                     # bar 08
-        "e1", "c1", "e1", "g1", "c2", "e2", "g2",   # bar 09
-        "c3", "h2", "f2",                           # bar 10
-        "a2", "g2", "f2", "d2",                     # bar 11
-        "c2", "e2", "d2", "e2",                     # bar 12
-        "d2", "c2"                                  # bar 13
+        "C6", "B5", "F5",                           # bar 06
+        "A5", "G5", "F5", "D5",                     # bar 07
+        "C5", "D5", "G4", "D5",                     # bar 08
+        "E4", "C4", "E4", "G4", "C5", "E5", "G5",   # bar 09
+        "C6", "B5", "F5",                           # bar 10
+        "A5", "G5", "F5", "D5",                     # bar 11
+        "C5", "E5", "D5", "E5",                     # bar 12
+        "D5", "C5"                                  # bar 13
     ]
     return target_pitch
+
+def get_target_pitch_midi():
+    target_pitch = [
+        "84", "83", "77",                           # bar 06
+        "81", "79", "77", "74",                     # bar 07
+        "72", "74", "67", "74",                     # bar 08
+        "64", "60", "64", "67", "72", "76", "79",   # bar 09
+        "84", "83", "77",                           # bar 10
+        "81", "79", "77", "74",                     # bar 11
+        "72", "76", "74", "76",                     # bar 12
+        "74", "72"                                  # bar 13
+    ]
+    return target_pitch
+
 
 
 # configure pitch detection
