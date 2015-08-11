@@ -181,12 +181,11 @@ def main(opts, dq_alltones):
     if opts.filename is not None:
         source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
     else:
-        source = AlsaSoundcard(opts.samplerate, opts.hop_size, input_device)
-
-    # TODO: Try to understand and rebuild aubionotes median implementation
-
-
-
+        print opts.soundinterface
+        if opts.soundinterface == "alsa":
+            source = AlsaSoundcard(opts.samplerate, opts.hop_size, input_device)
+        elif opts.soundinterface == "pysoundcard":
+            source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
 
     pitches = []
     confidences = []
@@ -374,6 +373,9 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--file", dest="filename", default=None,
                         help="input file (.wav)", metavar="FILE")
     parser.add_argument("-p", "--pi", dest='pi', action='store_true')
+    parser.add_argument("-S", "--soundinterface", dest='soundinterface', metavar="INTERFACE",
+                        choices=["alsa","pysoundcard"], default="alsa",
+                        help="choose soundcard interface")
     parser.add_argument("-R", "--samplerate", dest="samplerate", default=44100,
                         help="sample rate in Hz", metavar="RATE")
     parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,
