@@ -5,6 +5,7 @@ import aubio
 import numpy as np
 import pysoundcard as psc
 from collections import deque
+from itertools import groupby
 
 # configuration
 try:
@@ -137,8 +138,6 @@ def main(opts):
     if opts.pi:
         input_device = input_device_pi
 
-    print input_device
-
     source = None
     if opts.filename is not None:
         source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
@@ -154,10 +153,16 @@ def main(opts):
 
     pitches = []
     confidences = []
+    update = True
+    dq_alltones = deque(maxlen=100000)
+
 
     # total number of frames read
     total_frames = 0
-    while True:
+
+    run = True
+
+    while run:
         samples = source.get_next_chunk()
         # samples, read = source.get_next_chunk()
         onset = onset_alg(samples)[0]
@@ -167,8 +172,17 @@ def main(opts):
 
 
 
-
         #print(onset, pitch, confidence)
+
+        if confidence>0.9:
+            print(onset, pitch, confidence)
+
+            if len(dq_alltones) > 0 and dq_alltones[-1][0] == pitch:
+                dq_alltones[-1] = (dq_alltones[-1][0], dq_alltones[-1][1]+1)
+            else:
+                dq_alltones.append((pitch, 1))
+            update = True
+
         pitches += [pitch]
         confidences += [confidence]
         # total_frames += read
@@ -176,6 +190,14 @@ def main(opts):
 
 
 
+        # if update:
+        #     print
+        #     for t in dq_alltones:
+        #         print str(t[0]) + " #" + str(str(t[1]))
+        #     update = False
+        #     # list_tones = [(a,b) for (a,b) in [(key,len(list(group))) for key, group in groupby(dq_alltones, lambda x: x[0])] if b>0]
+        #     # print " tone sequence: " + str(list_tones)
+        #     # update = False
 
     skip = 1 # skip the first note
     pitches = np.array(pitches[skip:])
