@@ -61,6 +61,13 @@ def create_onset_alg(onset_method="default", onset_buffer_size=512,
     onset_alg.set_threshold(onset_threshold)
     return onset_alg
 
+# configure level (silence) detection
+class LevelAlg:
+    def __init__(self, silence_threshold):
+        self.silence_threshold = silence_threshold
+        self.level_detection_alg = aubio.level_detection()
+    def check(self, chunk):
+        self.silence_alg(chunk, silence_threshold)
 
 
 class SourceFile:
@@ -121,6 +128,7 @@ def main(opts):
 
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()
+    #level_alg =
 
     #onset_vec = aubio.fvec(1)
     #pitch_vec = aubio.fvec(1)
@@ -154,18 +162,28 @@ def main(opts):
         # samples, read = source.get_next_chunk()
         onset = onset_alg(samples)[0]
         pitch = pitch_alg(samples)[0]
+        #level =
         confidence = pitch_alg.get_confidence()
 
-        print(onset, pitch, confidence)
+
+
+
+        #print(onset, pitch, confidence)
         pitches += [pitch]
         confidences += [confidence]
         # total_frames += read
         # if read < opts.hop_size: break
 
+
+
+
     skip = 1 # skip the first note
     pitches = np.array(pitches[skip:])
     confidences = np.array(confidences[skip:])
     times = [t * opts.hop_size for t in range(len(pitches))]
+
+
+
 
     print pitches
     return
