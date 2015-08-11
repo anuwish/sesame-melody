@@ -53,21 +53,47 @@ class SourceFile:
 
 # TODO: find options to get it running on the raspberry pi
 class SourceSoundcard:
-    def __init__(self, samplerate, hop_size):
+    def __init__(self, samplerate, hop_size, input_device=True):
         self.samplerate = samplerate
         self.hop_size = hop_size
-        self.stream = psc.Stream(block_length = self.hop_size, samplerate=self.samplerate)
+        self.stream = psc.Stream(block_length=self.hop_size,
+                                 samplerate=self.samplerate,
+                                 input_device=self.input_device)
         self.stream.start()
     def get_next_chunk(self):
         vec = self.stream.read(self.hop_size)
         # mix down to mono
         mono_vec = vec.sum(-1)/float(self.stream.input_channels)
         return mono_vec
+    def start(self):
+        if self.stream.is_stopped():
+            self.stream.start()
+    def stop(self):
+        if self.stream.is_active():
+            self.stream.stop()
     def __del__(self):
-        self.stream.stop()
+        self.stop()
 
 def main(opts):
     # inspired by aubionotes.c
+
+    input_device = {
+        'default_high_input_latency': 0.012154195011337868,
+        'default_high_output_latency': 0.1,
+        'default_low_input_latency': 0.00199546485260771,
+        'default_low_output_latency': 0.01,
+        'default_sample_rate': 44100.0,
+        'device_index': 0,
+        'host_api_index': 0,
+        'input_channels': 2,
+        'input_latency': 0.00199546485260771,
+        'interleaved_data': True,
+        'name': u'Mikrofon (integr',
+        'output_channels': 0,
+        'output_latency': 0.01,
+        'sample_format': np.float32,
+        'struct_version': 2
+    }
 
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()
@@ -79,7 +105,7 @@ def main(opts):
     if opts.filename is not None:
         source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
     else:
-        source = SourceSoundcard(opts.samplerate, opts.hop_size)
+        source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
 
     # TODO: Try to understand and rebuild aubionotes median implementation
     # # use median
