@@ -6,6 +6,13 @@ import numpy as np
 import pysoundcard as psc
 
 # configuration
+try:
+    import alsaaudio
+    mixer = alsaaudio.Mixer(control='Mic', cardindex=0)
+    mixer.setrec(1)
+    mixer.setvolume(80, 0, alsaaudio.PCM_CAPTURE)
+except:
+    pass
 
 # target melody, bar 6 to 13
 def get_target_pitch():
@@ -56,6 +63,7 @@ class SourceSoundcard:
     def __init__(self, samplerate, hop_size, input_device=True):
         self.samplerate = samplerate
         self.hop_size = hop_size
+        self.input_device = input_device
         self.stream = psc.Stream(block_length=self.hop_size,
                                  samplerate=self.samplerate,
                                  input_device=self.input_device)
@@ -78,22 +86,23 @@ def main(opts):
     # inspired by aubionotes.c
 
     input_device = {
-        'default_high_input_latency': 0.012154195011337868,
-        'default_high_output_latency': 0.1,
-        'default_low_input_latency': 0.00199546485260771,
-        'default_low_output_latency': 0.01,
-        'default_sample_rate': 44100.0,
-        'device_index': 0,
-        'host_api_index': 0,
-        'input_channels': 2,
-        'input_latency': 0.00199546485260771,
-        'interleaved_data': True,
-        'name': u'Mikrofon (integr',
-        'output_channels': 0,
-        'output_latency': 0.01,
-        'sample_format': np.float32,
-        'struct_version': 2
+       'default_high_input_latency': 0.046439909297052155,
+       'default_high_output_latency': 0.046439909297052155,
+       'default_low_input_latency': 0.011609977324263039,
+       'default_low_output_latency': 0.011609977324263039,
+       'default_sample_rate': 44100.0,
+       'device_index': 0,
+       'host_api_index': 0,
+       'input_channels': 1,
+       'input_latency': 0.011609977324263039,
+       'interleaved_data': True,
+       'name': u'Logitech USB Headset: USB Audio (hw:0,0)',
+       'output_channels': 2,
+       'output_latency': 0.011609977324263039,
+       'sample_format': np.float32,
+       'struct_version': 2
     }
+
 
     pitch_alg = create_pitch_alg()
     onset_alg = create_onset_alg()

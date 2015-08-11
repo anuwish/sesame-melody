@@ -1,5 +1,5 @@
 import alsaaudio, struct
-from aubio.task import *
+import aubio
 from collections import deque
 from copy import deepcopy
 from itertools import groupby
@@ -10,9 +10,8 @@ INFORMAT    = alsaaudio.PCM_FORMAT_FLOAT_LE
 RATE        = 11025
 FRAMESIZE   = 235
 FRAMESIZE_AUBIO = 235
-PITCHALG    = aubio_pitch_yin
-PITCHOUT    = aubio_pitchm_freq
-ONSETALG    = aubio_onset_complex
+PITCHALG    = "yin"
+PITCHOUT    = "freq"
 
 # audio levels 
 AUDIO_GAIN  = 80
@@ -31,10 +30,13 @@ recorder.setformat(INFORMAT)
 recorder.setperiodsize(FRAMESIZE)
 
 # set up pitch detect
-detect = new_aubio_pitchdetection(FRAMESIZE_AUBIO,FRAMESIZE_AUBIO/2,CHANNELS,
-                                  RATE,PITCHALG,PITCHOUT)
-onset = new_aubio_onsetdetection(ONSETALG,FRAMESIZE_AUBIO,CHANNELS)
-buf = new_fvec(FRAMESIZE_AUBIO,CHANNELS)
+# detect = new_aubio_pitchdetection(FRAMESIZE_AUBIO,FRAMESIZE_AUBIO/2,CHANNELS,
+#                                   RATE,PITCHALG,PITCHOUT)
+detect = aubio.pitch(PITCHALG, FRAMESIZE_AUBIO,FRAMESIZE_AUBIO/2,RATE)#
+detect.set_tolerance(0.8)
+detect.set_unit(PITCHOUT)
+
+#buf = new_fvec(FRAMESIZE_AUBIO,CHANNELS)
 
 tone_dist = 2.0**(1.0/12.0)
 tonedict = {
@@ -158,8 +160,8 @@ while runflag:
 
     #for c in cc:
     # copy floats into structure
-    for i in range(len(floats)):
-      fvec_write_sample(buf, floats[i], 0, i)
+    # for i in range(len(floats)):
+    #   fvec_write_sample(buf, floats[i], 0, i)
 
     # find pitch of audio frame
     freq = aubio_pitchdetection(detect,buf)
