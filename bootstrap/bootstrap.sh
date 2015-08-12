@@ -11,6 +11,7 @@ sudo apt-get install libffi5 libffi-dev
 sudo pip install pyalsa
 sudo pip install pyalsaaudio
 sudo pip install pysoundcard
+sudo pip install RPIO
 
 git config --global user.email "pi@raspberry.local"
 git config --global user.name "Raspberry Pi"
