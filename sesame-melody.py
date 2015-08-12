@@ -4,6 +4,7 @@
 import aubio
 import numpy as np
 import time
+import logging
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
@@ -201,7 +202,7 @@ class NoteDetector(threading.Thread):
                                           self.onset_samplerate,
                                           self.onset_threshold)
         self.level_alg = create_level_alg(self.silence_threshold)
-        self.debug = debug
+        self.logger = logging.getLogger("SesameMelody")
 
     def run(self):
         try:
@@ -590,5 +591,29 @@ if __name__ == "__main__":
 
 
     opts = parser.parse_args()
+
+    # create logger
+    logger = logging.getLogger("SesameMelody")
+    logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(message)s','%Y-%m-%d %H:%M:%S')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+
+    # 'application' code
+    logger.info('Welcome to Sesame Melody!')
+    #logger.debug('debug message')
+    #logger.warn('warn message')
+    #logger.error('error message')
+    #logger.critical('critical message')
 
     main(opts)
