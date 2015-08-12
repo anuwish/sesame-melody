@@ -13,7 +13,7 @@ try:
     import alsaaudio
     mixer = alsaaudio.Mixer(control='Mic', cardindex=0)
     mixer.setrec(1)
-    mixer.setvolume(80, 0, alsaaudio.PCM_CAPTURE)
+    mixer.setvolume(75, 0, alsaaudio.PCM_CAPTURE)
 except:
     pass
 
@@ -289,17 +289,21 @@ def dummy(dq):
         (74.0, 149),
         (72.0, 1),
     ]
+    print "DUMMY MODE"
     for i in range(0,random.randint(0, 100)):
         tone = random.randint(72, 90)
-        for j in range(0, random.randint(1, 20)):
-            dq.append((0.0, tone, 0.11))
+        dq.append(tone)
+        time.sleep(0.1)
+    print "Noise done."
     for p in l_detect:
-        for i in range(0, p[1]):
-            dq.append((0.0, p[0], 0.99))
+        dq.append(p[0])
+        time.sleep(0.1)
+    print "Sequence done."
     for i in range(0,random.randint(0, 100)):
         tone = random.randint(72, 90)
-        for j in range(0, random.randint(1, 20)):
-            dq.append((0.0, tone, 0.11))
+        dq.append(tone)
+        time.sleep(0.1)
+    print "Noise done."
     while True:
         time.sleep(1)
 
@@ -307,19 +311,31 @@ class AnalyzeThread(threading.Thread):
     def __init__(self,dq):
         super(AnalyzeThread, self).__init__()
         self.dq_external=dq
-        self.number_notes_consider = int(31*1.5)
+        self.number_notes_consider = int(31*1.10)
         self.dq_ana = deque(maxlen=self.number_notes_consider)
+        self.dq_ana_lo = deque(maxlen=self.number_notes_consider)
+        self.dq_ana_hi = deque(maxlen=self.number_notes_consider)
+        self.threshold_detected = 0.65
         self.max_ratio = 0.0
         self.sleep_timer = 0.1
         self.target_pitch = get_target_pitch_midi()
+        self.base_notes_only = False
 
     def run(self):
+        if self.base_notes_only:
+            self.target_pitch[:] = [x % 12 for x in self.target_pitch]
+            print self.target_pitch
         perform_analysis = False
         while True:
             if len(self.dq_external) > 0:
                 # Feed new notes to own analysis deque
                 while len(self.dq_external) > 0:
-                    self.dq_ana.append(self.dq_external.popleft())
+                    tone = self.dq_external.popleft()
+                    if self.base_notes_only:
+                        tone = tone%12
+                    self.dq_ana.append(tone)
+                    self.dq_ana_lo.append(tone-1.0)
+                    self.dq_ana_hi.append(tone+1.0)
                 perform_analysis = True
             else:
                 time.sleep(self.sleep_timer)
@@ -327,12 +343,19 @@ class AnalyzeThread(threading.Thread):
             if perform_analysis:
                 perform_analysis = False
                 list_tones = list(self.dq_ana)
+                list_tones_lo = list(self.dq_ana_lo)
+                list_tones_hi = list(self.dq_ana_hi)
                 sm=difflib.SequenceMatcher(None,self.target_pitch,list_tones)
+                sm_lo=difflib.SequenceMatcher(None,self.target_pitch,list_tones_lo)
+                sm_hi=difflib.SequenceMatcher(None,self.target_pitch,list_tones_hi)
                 if sm.ratio() > self.max_ratio:
                     self.max_ratio = sm.ratio()
-                print list_tones
+                print "CL: " + str(sm.ratio()) + " @" + str(list_tones)
+                print "CL (lo): " + str(sm_lo.ratio()) + " @" + str(list_tones_lo)
+                print "CL (hi): " + str(sm_hi.ratio()) + " @" + str(list_tones_hi)
+                print
                 #print sm.ratio()
-                if sm.ratio() > self.threshold_detected:
+                if max(sm.ratio(), sm_lo.ratio(), sm_hi.ratio()) > self.threshold_detected:
                     print ""
                     print ""
                     print ""
@@ -342,7 +365,9 @@ class AnalyzeThread(threading.Thread):
                     print ""
                     print ""
                     print ""
-                    os._exit(1)
+                    self.dq_ana.clear()
+                    self.dq_ana_lo.clear()
+                    self.dq_ana_hi.clear()
 
 def main(opts):
     # inspired by aubionotes.c
@@ -375,12 +400,17 @@ def main(opts):
     if opts.filename is not None:
         source = SourceFile(opts.filename, opts.sample_rate, opts.hop_size)
     else:
-        if opts.soundinterface == "alsa":
+        if opts.soundinterface == "alsa" and not opts.dummy:
             source = AlsaSoundcard(opts.sample_rate, opts.hop_size, input_device)
-        elif opts.soundinterface == "pysoundcard":
+        elif opts.soundinterface == "pysoundcard" and not opts.dummy:
             source = SourceSoundcard(opts.sample_rate, opts.hop_size, input_device)
 
     dq_alltones = deque(maxlen=10000)
+
+    analyser = AnalyzeThread(dq_alltones)
+    analyser.daemon = True
+    analyser.start()
+
     if opts.dummy:
         dummy(dq_alltones)
     else:
@@ -399,10 +429,6 @@ def main(opts):
         notedetect.daemon = True
         notedetect.start()
 
-
-    analyser = AnalyzeThread(dq_alltones)
-    analyser.daemon = True
-    analyser.start()
 
     try:
         while True: time.sleep(0.2)
