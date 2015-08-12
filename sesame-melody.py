@@ -394,6 +394,12 @@ def main(opts):
     return
 
 
+def restricted_float(x):
+    x = float(x)
+    if x < 0.0 or x > 1.0:
+        raise argparse.ArgumentTypeError("%r not in range [0.0, 1.0]"%(x,))
+    return x
+
 import sys
 if __name__ == "__main__":
     import argparse
@@ -401,14 +407,39 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--file", dest="filename", default=None,
                         help="input file (.wav)", metavar="FILE")
     parser.add_argument("-p", "--pi", dest='pi', action='store_true')
-    parser.add_argument("-S", "--soundinterface", dest='soundinterface', metavar="INTERFACE",
-                        choices=["alsa","pysoundcard"], default="alsa",
+    parser.add_argument("-s", "--soundinterface", dest='soundinterface', metavar="INTERFACE",
+                        type=str, choices=["alsa","pysoundcard"], default="alsa",
                         help="choose soundcard interface")
-    parser.add_argument("-R", "--samplerate", dest="samplerate", default=44100,
-                        help="sample rate in Hz", metavar="RATE")
-    parser.add_argument("-H", "--hopsize", dest="hop_size", default=256,
-                        help="hop size in bits", metavar="HOP")
+    parser.add_argument("--samplerate", dest="samplerate", metavar="RATE",
+                        type=int, default=44100,
+                        help="sample rate in Hz")
+    parser.add_argument("--hopsize", dest="hop_size", metavar="HOP",
+                        type=int, default=256,
+                        help="hop size in bits")
+    parser.add_argument("--buffersize", dest="buffer_size", metavar="BUFFER_SIZE", default=512)
+    parser.add_argument("--pitch-to-onsetbuffer-ratio",
+                        dest="pitch_to_onsetbuffer_ratio", metavar="RATIO",
+                        type=int, default=4)
+    parser.add_argument("--pitch-method", dest="pitch_method", metavar="PITCH_METHOD",
+                        type=str,
+                        choices=["default","schmitt","fcomb","mcomb","specacf","yin","yinfft"],
+                        default="default")
+    parser.add_argument("--pitch-unit", dest="pitch_unit", metavar="PITCH_UNIT",
+                        type=str, choices=["midi","bin","cent","Hz"], default="midi")
+    parser.add_argument("--pitch-tolerance", dest="pitch_tolerance", metavar="PITCH_TOLERANCE",
+                        type=restricted_float, default=0.8)
+    parser.add_argument("--onset-method", dest="onset_method", metavar="ONSET_METHOD",
+                        type=str,
+                        choices=["default","energy","hfc","complex","phase","specdiff","kl","mkl","specflux"],
+                        default="default")
+    parser.add_argument("--onset-threshold", dest="onset_threshold", metavar="ONSET_THRESHOLD",
+                        type=restricted_float, default=0.1)
+    parser.add_argument("--silence-threshold", dest="silence_threshold", metavar="SILENCE_THRESHOLD",
+                        type=float, default=-50.,
+                        help="Set the silence threshold, in dB, under which the pitch will not be detected. A value of -20.0 would eliminate most onsets but the loudest ones. A value of -90.0 would select all onsets. ")
     parser.add_argument("-d", "--dummy", dest='dummy', action='store_true')
+
+
 
 
     opts = parser.parse_args()
