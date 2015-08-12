@@ -165,6 +165,7 @@ class NoteDetector(threading.Thread):
                  pitch_unit="midi",
                  pitch_buffersize=4*512,
                  pitch_tolerance=0.8,
+                 pitch_min_confidence=0.6,
                  silence_threshold=-60.,
                  ):
         super(NoteDetector, self).__init__()
@@ -181,6 +182,7 @@ class NoteDetector(threading.Thread):
         self.pitch_hopsize = hopsize
         self.pitch_samplerate = sample_rate
         self.pitch_tolerance = pitch_tolerance
+        self.pitch_min_confidence = pitch_min_confidence,
         self.silence_threshold = silence_threshold
         self.pitch_alg = create_pitch_alg(self.pitch_method,
                                           self.pitch_buffersize,
@@ -224,7 +226,7 @@ class NoteDetector(threading.Thread):
                         # print med_pitch
                     median_buffer = []
                 else:
-                    if not pitch == 0.0 and not confidence < 0.6:
+                    if not pitch == 0.0 and not confidence < self.pitch_min_confidence:
                         median_buffer.append(pitch)
                     #print(onset, pitch, confidence, level)
                 continue
@@ -424,6 +426,7 @@ def main(opts):
                                   pitch_unit=opts.pitch_unit,
                                   pitch_buffersize=(opts.buffer_size*opts.pitch_to_onsetbuffer_ratio),
                                   pitch_tolerance=opts.pitch_tolerance,
+                                  pitch_min_confidence=opts.pitch_min_confidence,
                                   silence_threshold=opts.silence_threshold
                                   )
         notedetect.daemon = True
@@ -471,6 +474,8 @@ if __name__ == "__main__":
     parser.add_argument("--pitch-unit", dest="pitch_unit", metavar="PITCH_UNIT",
                         type=str, choices=["midi","bin","cent","Hz"], default="midi")
     parser.add_argument("--pitch-tolerance", dest="pitch_tolerance", metavar="PITCH_TOLERANCE",
+                        type=restricted_float, default=0.8)
+    parser.add_argument("--pitch-min-confidence", dest="pitch_min_confidence", metavar="CONFIDENCEMIN",
                         type=restricted_float, default=0.8)
     parser.add_argument("--onset-method", dest="onset_method", metavar="ONSET_METHOD",
                         type=str,
