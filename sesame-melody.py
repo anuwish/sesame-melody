@@ -155,24 +155,47 @@ class LevelAlg:
         return self.level_detection_alg(chunk, self.silence_threshold)
 
 class NoteDetector(threading.Thread):
-    def __init__(self, source, dq, silence_level):
+    def __init__(self, source, dq,
+                 hopsize=256,
+                 samplerate=44100,
+                 onset_method="default",
+                 onset_buffersize=512,
+                 onset_threshold=0.1,
+                 pitch_method="default",
+                 pitch_unit="midi",
+                 pitch_buffersize=4*512,
+                 pitch_tolerance=0.8,
+                 silence_threshold=-60.,
+                 ):
         super(NoteDetector, self).__init__()
         self.source = source
         self.dq_external = dq
-        self.silence_level = silence_level
-        self.pitch_alg = create_pitch_alg()
-        self.onset_alg = create_onset_alg()
-        self.level_alg = create_level_alg(self.silence_level)
+        self.onset_method = onset_method
+        self.onset_buffersize = onset_buffersize
+        self.onset_hopsize = hopsize
+        self.onset_samplerate = samplerate
+        self.onset_threshold = onset_threshold
+        self.pitch_method = pitch_method
+        self.pitch_unit = pitch_unit
+        self.pitch_buffersize = pitch_buffersize
+        self.pitch_hopsize = hopsize
+        self.pitch_samplerate = samplerate
+        self.pitch_tolerance = pitch_tolerance
+        self.silence_threshold = silence_threshold
+        self.pitch_alg = create_pitch_alg(self.pitch_method,
+                                          self.pitch_buffersize,
+                                          self.pitch_hopsize,
+                                          self.pitch_samplerate,
+                                          self.pitch_tolerance,
+                                          self.pitch_unit)
+        self.onset_alg = create_onset_alg(self.onset_method,
+                                          self.onset_buffersize,
+                                          self.onset_hopsize,
+                                          self.onset_samplerate,
+                                          self.onset_threshold)
+        self.level_alg = create_level_alg(self.silence_threshold)
 
     def run(self):
-        # config
-        pitches = []
-        confidences = []
-        update = True
-
-        # total number of frames read
-        total_frames = 0
-        #median_buffer = deque(maxlen=median_size)
         median_buffer = [ ]
         run = True
         found_onset = False
@@ -377,7 +400,7 @@ def main(opts):
     if opts.dummy:
         dummy(dq_alltones)
     else:
-        notedetect = NoteDetector(source, dq_alltones, -60.)
+        notedetect = NoteDetector(source, dq_alltones)
         notedetect.daemon = True
         notedetect.start()
 
