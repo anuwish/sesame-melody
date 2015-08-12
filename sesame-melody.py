@@ -19,25 +19,25 @@ except:
 
 # sound sources
 class SourceFile:
-    def __init__(self, filename, samplerate, hop_size):
+    def __init__(self, filename, sample_rate, hop_size):
         self.filename = filename
-        self.samplerate = samplerate
+        self.sample_rate = sample_rate
         self.hop_size = hop_size
-        self.aubio_source = aubio.source(self.filename, self.samplerate, self.hop_size)
+        self.aubio_source = aubio.source(self.filename, self.sample_rate, self.hop_size)
     def get_next_chunk(self):
         samples, read = self.aubio_source()
         return samples
 
 # TODO: find options to get it running on the raspberry pi
 class AlsaSoundcard:
-    def __init__(self, samplerate, hop_size, input_device=True):
-        self.samplerate = int(samplerate)
+    def __init__(self, sample_rate, hop_size, input_device=True):
+        self.sample_rate = int(sample_rate)
         self.hop_size = hop_size
         self.input_device = input_device
-        self.framesize = int(940*float(self.samplerate)/44100.0)
+        self.framesize = int(940*float(self.sample_rate)/44100.0)
         self.stream = alsaaudio.PCM(type=alsaaudio.PCM_CAPTURE, device='sysdefault:CARD=Headset')
         self.stream.setchannels(1)
-        self.stream.setrate(self.samplerate)
+        self.stream.setrate(self.sample_rate)
         self.stream.setformat(alsaaudio.PCM_FORMAT_FLOAT_LE)
         self.stream.setperiodsize(self.framesize)
 
@@ -61,12 +61,12 @@ class AlsaSoundcard:
 
 # TODO: find options to get it running on the raspberry pi
 class SourceSoundcard:
-    def __init__(self, samplerate, hop_size, input_device=True):
-        self.samplerate = samplerate
+    def __init__(self, sample_rate, hop_size, input_device=True):
+        self.sample_rate = sample_rate
         self.hop_size = 1024
         self.input_device = input_device
         self.stream = psc.Stream(block_length=16,
-                                 samplerate=self.samplerate,
+                                 sample_rate=self.sample_rate,
                                  input_device=self.input_device)
         self.stream.start()
     def get_next_chunk(self):
@@ -157,7 +157,7 @@ class LevelAlg:
 class NoteDetector(threading.Thread):
     def __init__(self, source, dq,
                  hopsize=256,
-                 samplerate=44100,
+                 sample_rate=44100,
                  onset_method="default",
                  onset_buffersize=512,
                  onset_threshold=0.1,
@@ -173,13 +173,13 @@ class NoteDetector(threading.Thread):
         self.onset_method = onset_method
         self.onset_buffersize = onset_buffersize
         self.onset_hopsize = hopsize
-        self.onset_samplerate = samplerate
+        self.onset_samplerate = sample_rate
         self.onset_threshold = onset_threshold
         self.pitch_method = pitch_method
         self.pitch_unit = pitch_unit
         self.pitch_buffersize = pitch_buffersize
         self.pitch_hopsize = hopsize
-        self.pitch_samplerate = samplerate
+        self.pitch_samplerate = sample_rate
         self.pitch_tolerance = pitch_tolerance
         self.silence_threshold = silence_threshold
         self.pitch_alg = create_pitch_alg(self.pitch_method,
@@ -352,7 +352,7 @@ def main(opts):
        'default_high_output_latency': 0.046439909297052155,
        'default_low_input_latency': 0.042653061224489794,
        'default_low_output_latency': 0.042653061224489794,
-       'default_sample_rate': opts.samplerate,
+       'default_sample_rate': opts.sample_rate,
        'device_index': 0,
        'host_api_index': 0,
        'input_channels': 1,
@@ -373,18 +373,29 @@ def main(opts):
 
     source = None
     if opts.filename is not None:
-        source = SourceFile(opts.filename, opts.samplerate, opts.hop_size)
+        source = SourceFile(opts.filename, opts.sample_rate, opts.hop_size)
     else:
         if opts.soundinterface == "alsa":
-            source = AlsaSoundcard(opts.samplerate, opts.hop_size, input_device)
+            source = AlsaSoundcard(opts.sample_rate, opts.hop_size, input_device)
         elif opts.soundinterface == "pysoundcard":
-            source = SourceSoundcard(opts.samplerate, opts.hop_size, input_device)
+            source = SourceSoundcard(opts.sample_rate, opts.hop_size, input_device)
 
     dq_alltones = deque(maxlen=10000)
     if opts.dummy:
         dummy(dq_alltones)
     else:
-        notedetect = NoteDetector(source, dq_alltones)
+        notedetect = NoteDetector(source, dq_alltones,
+                                  hopsize=opts.hop_size,
+                                  sample_rate=opts.sample_rate,
+                                  onset_method=opts.onset_method,
+                                  onset_buffersize=opts.buffer_size,
+                                  onset_threshold=opts.onset_threshold,
+                                  pitch_method=opts.pitch_method,
+                                  pitch_unit=opts.pitch_unit,
+                                  pitch_buffersize=(opts.buffer_size*opts.pitch_to_onsetbuffer_ratio),
+                                  pitch_tolerance=opts.pitch_tolerance,
+                                  silence_threshold=opts.silence_threshold
+                                  )
         notedetect.daemon = True
         notedetect.start()
 
@@ -417,13 +428,13 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--soundinterface", dest='soundinterface', metavar="INTERFACE",
                         type=str, choices=["alsa","pysoundcard"], default="alsa",
                         help="choose soundcard interface")
-    parser.add_argument("--samplerate", dest="samplerate", metavar="RATE",
+    parser.add_argument("--sample-rate", dest="sample_rate", metavar="RATE",
                         type=int, default=44100,
                         help="sample rate in Hz")
-    parser.add_argument("--hopsize", dest="hop_size", metavar="HOP",
+    parser.add_argument("--hop-size", dest="hop_size", metavar="HOP",
                         type=int, default=256,
                         help="hop size in bits")
-    parser.add_argument("--buffersize", dest="buffer_size", metavar="BUFFER_SIZE", default=512)
+    parser.add_argument("--buffer-size", dest="buffer_size", metavar="BUFFER_SIZE", default=512)
     parser.add_argument("--pitch-to-onsetbuffer-ratio",
                         dest="pitch_to_onsetbuffer_ratio", metavar="RATIO",
                         type=int, default=4)
