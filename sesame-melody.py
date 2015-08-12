@@ -6,7 +6,7 @@ import numpy as np
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
-import threading, time, difflib, random, struct
+import threading, time, difflib, random, struct, os
 
 # configuration
 try:
@@ -220,8 +220,8 @@ class NoteDetector(threading.Thread):
                         med_pitch_array = np.around(np.array(median_buffer))
                         med_pitch = np.median(med_pitch_array)
                         self.dq_external.append(med_pitch)
-                        print med_pitch_array
-                        print med_pitch
+                        # print med_pitch_array
+                        # print med_pitch
                     median_buffer = []
                 else:
                     if not pitch == 0.0 and not confidence < 0.6:
@@ -307,58 +307,42 @@ class AnalyzeThread(threading.Thread):
     def __init__(self,dq):
         super(AnalyzeThread, self).__init__()
         self.dq_external=dq
-        self.print_len = 0
-        self.dq_ana = deque(maxlen=100)
-        self.threshold_neglect = 8
         self.number_notes_consider = int(31*1.5)
-        self.threshold_detected = 0.6
+        self.dq_ana = deque(maxlen=self.number_notes_consider)
         self.max_ratio = 0.0
         self.sleep_timer = 0.1
+        self.target_pitch = get_target_pitch_midi()
 
     def run(self):
+        perform_analysis = False
         while True:
             if len(self.dq_external) > 0:
-                #(onset, pitch, confidence) = self.dq_external.popleft()
-                #print(onset, pitch, confidence)
-                pitch = self.dq_external.popleft()
-                if len(self.dq_ana) > 0 and self.dq_ana[-1][0] == pitch:
-                    self.dq_ana[-1] = (self.dq_ana[-1][0], self.dq_ana[-1][1]+1)
-                else:
-                    self.dq_ana.append((pitch, 1))
+                # Feed new notes to own analysis deque
+                while len(self.dq_external) > 0:
+                    self.dq_ana.append(self.dq_external.popleft())
+                perform_analysis = True
             else:
-                time.sleep(1)
-
-            if len(self.dq_ana) > self.print_len:
-                print
-                for t in self.dq_ana:
-                    print str(t[0]) + " #" + str(str(t[1]))
-                self.print_len = len(self.dq_ana)
                 time.sleep(self.sleep_timer)
 
-            list_tones = [i[0] for i in self.dq_ana if i[1] > self.threshold_neglect]
-            #print list_tones
-            sm=difflib.SequenceMatcher(None,get_target_pitch_midi(),list_tones[-self.number_notes_consider:])
-            if sm.ratio() > self.max_ratio:
-                self.max_ratio = sm.ratio()
-            print list_tones[-self.number_notes_consider:]
-            #print sm.ratio()
-            if sm.ratio() > self.threshold_detected:
-                print ""
-                print ""
-                print ""
-                print "YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")"
-                print "Analyzed list: "
-                print list_tones[-self.number_notes_consider:]
-                print ""
-                print ""
-                print ""
-
-            # if len(self.dq_ana) > self.print_len:
-            #     print
-            #     for t in self.dq_ana:
-            #         print str(t[0]) + " #" + str(str(t[1]))
-            #     self.print_len = len(self.dq_ana)
-
+            if perform_analysis:
+                perform_analysis = False
+                list_tones = list(self.dq_ana)
+                sm=difflib.SequenceMatcher(None,self.target_pitch,list_tones)
+                if sm.ratio() > self.max_ratio:
+                    self.max_ratio = sm.ratio()
+                print list_tones
+                #print sm.ratio()
+                if sm.ratio() > self.threshold_detected:
+                    print ""
+                    print ""
+                    print ""
+                    print "YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")"
+                    print "Analyzed list: "
+                    print list_tones
+                    print ""
+                    print ""
+                    print ""
+                    os._exit(1)
 
 def main(opts):
     # inspired by aubionotes.c
