@@ -3,6 +3,7 @@
 #import pyaudio
 import aubio
 import numpy as np
+import time
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
@@ -65,7 +66,7 @@ class AlsaSoundcard:
 class SourceSoundcard:
     def __init__(self, sample_rate, hop_size, input_device=True):
         self.sample_rate = sample_rate
-        self.hop_size = 1024
+        self.hop_size = hop_size
         self.input_device = input_device
         self.stream = psc.Stream(block_length=16,
                                  sample_rate=self.sample_rate,
@@ -168,6 +169,7 @@ class NoteDetector(threading.Thread):
                  pitch_buffersize=4*512,
                  pitch_tolerance=0.8,
                  silence_threshold=-60.,
+                 duration_until_silence=3.,
                  debug=False):
         super(NoteDetector, self).__init__()
         self.source = source
@@ -185,6 +187,8 @@ class NoteDetector(threading.Thread):
         self.pitch_samplerate = sample_rate
         self.pitch_tolerance = pitch_tolerance
         self.silence_threshold = silence_threshold
+        self.duration_until_silence = duration_until_silence
+        self.pitch_seconds_per_block = float(self.pitch_hopsize) / float(self.pitch_samplerate)
         self.pitch_alg = create_pitch_alg(self.pitch_method,
                                           self.pitch_buffersize,
                                           self.pitch_hopsize,
@@ -201,42 +205,58 @@ class NoteDetector(threading.Thread):
 
     def run(self):
         try:
-            print "NoteDetector TID:", ctypes.CDLL('libc.so.6').syscall(224)
+            tid = ctypes.CDLL('libc.so.6').syscall(224)
+            print "NoteDetector TID:", tid
         except:
             pass
         median_buffer = [ ]
         run = True
         found_onset = False
+        silence_duration = 0
+        silence_begin = 0
+        silence_end = 0
         while run:
             samples = self.source.get_next_chunk()
             level = self.level_alg(samples)
             onset = self.onset_alg(samples)[0]
             pitch = self.pitch_alg(samples)[0]
             confidence = self.pitch_alg.get_confidence()
+
+
             # check for onset
             if not found_onset:
-                if onset > 0. and level is not 1.:
+                if onset > 0. and level != 1.:
                     #print "Found an onset! Starting to fill the buffer!"
                     found_onset = True
                     median_buffer.append(pitch)
-                    #print(onset, pitch, confidence, level)
+                else:
+                    silence_duration += 1
+                    if silence_duration*self.pitch_seconds_per_block > self.duration_until_silence:
+                        self.dq_external.append(-10)
+                        self.dq_external_insta.append(-10)
+                        #print silence_duration, silence_duration*self.pitch_seconds_per_block
+                        silence_duration = 0
                 continue
             else:
-                if onset > 0. or level is 1.:
+                if onset > 0. or level == 1.:
+                    if level == 1.:
+                        found_onset = False
+                        silence_duration = 1
+                        silence_begin = time.time()
                     #print "Found a new onset or silence! Start analysing notes in buffer."
                     if median_buffer: # check that buffer is not empty
                         med_pitch_array = np.around(np.array(median_buffer))
                         med_pitch = np.median(med_pitch_array)
                         self.dq_external.append(med_pitch)
                         self.dq_external_insta.append(med_pitch)
-                        # print med_pitch_array
-                        # print med_pitch
+                        print med_pitch_array
+                        print med_pitch
                     median_buffer = []
                 else:
                     if not pitch == 0.0 and not confidence < 0.6:
                         median_buffer.append(pitch)
-                    #print(onset, pitch, confidence, level)
                 continue
+
             # if confidence>0.9:
             #     #print(onset, pitch, confidence)
             #     self.dq_external.append((onset, pitch, confidence))
@@ -500,6 +520,7 @@ def main(opts):
                                   pitch_buffersize=(opts.buffer_size*opts.pitch_to_onsetbuffer_ratio),
                                   pitch_tolerance=opts.pitch_tolerance,
                                   silence_threshold=opts.silence_threshold,
+                                  duration_until_silence=opts.duration_until_silence,
                                   debug=opts.debug)
         notedetect.daemon = True
         notedetect.start()
@@ -559,6 +580,8 @@ if __name__ == "__main__":
                              the pitch will not be detected. A value of -20.0
                              would eliminate most onsets but the loudest ones. A
                              value of -90.0 would select all onsets.""")
+    parser.add_argument("--duration-until-silence", dest="duration_until_silence", metavar="DURATION",
+                        type=float, default=3., help="Duration in s after which silence is declared.")
     parser.add_argument("-d", "--dummy", dest='dummy', action='store_true')
     parser.add_argument("--base-notes-only", dest='base_notes_only', action='store_true')
     parser.add_argument("--debug", dest='debug', action='store_true')
