@@ -436,7 +436,10 @@ if __name__ == "__main__":
                         type=restricted_float, default=0.1)
     parser.add_argument("--silence-threshold", dest="silence_threshold", metavar="SILENCE_THRESHOLD",
                         type=float, default=-50.,
-                        help="Set the silence threshold, in dB, under which the pitch will not be detected. A value of -20.0 would eliminate most onsets but the loudest ones. A value of -90.0 would select all onsets. ")
+                        help="""Set the silence threshold, in dB, under which
+                             the pitch will not be detected. A value of -20.0
+                             would eliminate most onsets but the loudest ones. A
+                             value of -90.0 would select all onsets.""")
     parser.add_argument("-d", "--dummy", dest='dummy', action='store_true')
 
 
