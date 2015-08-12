@@ -227,7 +227,7 @@ class NoteDetector(threading.Thread):
             # check for onset
             if not found_onset:
                 if onset > 0. and level != 1.:
-                    #print "Found an onset! Starting to fill the buffer!"
+                    self.logger.debug("Found an onset! Starting to fill the buffer!")
                     found_onset = True
                     median_buffer.append(pitch)
                 else:
@@ -235,7 +235,6 @@ class NoteDetector(threading.Thread):
                     if silence_duration*self.pitch_seconds_per_block > self.duration_until_silence:
                         self.dq_external.append(-10)
                         self.dq_external_insta.append(-10)
-                        #print silence_duration, silence_duration*self.pitch_seconds_per_block
                         silence_duration = 0
                 continue
             else:
