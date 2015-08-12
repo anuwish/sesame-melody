@@ -18,6 +18,7 @@ def sine_tone(stream, frequency, duration, volume=1, sample_rate=22050):
     s = lambda t: volume * math.sin(2 * math.pi * frequency * t / sample_rate)
     samples = (int(s(t) * 0x7f + 0x80) for t in xrange(n_samples))
     for buf in izip(*[samples]*sample_rate): # write several samples at a time
+        #print(buf)
         stream.write(bytes(bytearray(buf)))
 
     # fill remainder of frameset with silence
@@ -42,7 +43,7 @@ stream = p.open(format=p.get_format_from_width(1), # 8bit
                 rate=44100,
                 output=True)
 for f in get_target_pitch_freq():
-    sine_tone(stream, frequency=f, duration=1, volume=0.1,sample_rate=44100)
+    sine_tone(stream, frequency=f, duration=1, volume=0.6,sample_rate=44100)
 
 stream.stop_stream()
 stream.close()

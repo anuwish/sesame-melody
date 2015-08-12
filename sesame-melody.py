@@ -7,7 +7,8 @@ import pysoundcard as psc
 from collections import deque
 from itertools import groupby
 import threading, time, difflib, random, struct, os, ctypes
-import servo, visual
+import smgpio.visual as visual
+import smgpio.mech as mech
 
 # configuration
 try:
@@ -446,10 +447,10 @@ def main(opts):
     }
 
     servo_state = "closed"
-    srv = servo.SMServo(18,90)
+    srv = mech.Servo(18,90)
     srv.close()
 
-    led = visual.SMLed(15,16)
+    led = visual.Led(15,16)
     led.red()
 
     input_device = True
