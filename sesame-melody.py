@@ -111,6 +111,18 @@ def get_target_pitch_midi():
     ]
     return target_pitch
 
+def get_target_pitch_freq():
+    target_pitch = [
+        1046.5, 987.77, 698.46,                           # bar 06
+        880.00, 783.99, 698.46, 587.33,                     # bar 07
+        523.25, 587.33, 392.00, 587.33,                     # bar 08
+        329.63, 261.63, 329.63, 392.00, 523.25, 659.26, 783.99,   # bar 09
+        1046.5, 987.77, 698.46,                           # bar 10
+        880.00, 783.99, 698.46, 587.33,                     # bar 11
+        523.25, 659.26, 587.33, 659.26,                     # bar 12
+        587.33, 523.25                                  # bar 13
+    ]
+    return target_pitch
 
 
 # configure pitch detection
