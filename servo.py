@@ -32,44 +32,44 @@ class SMServo:
     self.servo = PWM.Servo()
 
     # move to initial POS
-    self.servo.set_servo(self.pin, pulse_length(self.pos))
-    time.sleep(T_MAX)
+    self.servo.set_servo(self.pin, self.pulse_length(self.pos))
+    time.sleep(SMServo.T_MAX)
     self.servo.stop_servo(self.pin)
     time.sleep(1)
 
   def __del__(self):
     PWM.cleanup()
 
-  def pulse_length(angle):
+  def pulse_length(self, angle):
     # return pulse length to reach requested angle
-    increment = (MAX_PULSE_WIDTH - MIN_PULSE_WIDTH) / ANGLE_RANGE
-    pl = MIN_PULSE_WIDTH + (increment * angle)
+    increment = (SMServo.MAX_PULSE_WIDTH - SMServo.MIN_PULSE_WIDTH) / SMServo.ANGLE_RANGE
+    pl = SMServo.MIN_PULSE_WIDTH + (increment * angle)
     return pl
 
-  def duration(angle):
+  def duration(self, angle):
     # calculate signal duration from current and final position
     diff = abs(self.pos - angle)
-    d = T_PER_60/60.0 * diff
+    d = SMServo.T_PER_60/60.0 * diff
     self.pos = angle
     return d
 
-  def move(angle):
+  def move(self, angle):
     # move 'servo' to 'angle'
     #print "Move servo to", angle
-    self.servo.set_servo(self.pin, pulse_length(angle))
-    time.sleep(duration(angle))
+    self.servo.set_servo(self.pin, self.pulse_length(angle))
+    time.sleep(self.duration(angle))
     self.servo.stop_servo(self.pin)
     time.sleep(1)
 
-  def open():
+  def open(self):
     # open servo
     print "Open servo"
-    move(OPEN_ANGLE)
+    self.move(SMServo.OPEN_ANGLE)
 
-  def close():
+  def close(self):
     # close servo
     print "Close servo"
-    move(CLOSE_ANGLE)
+    self.move(SMServo.CLOSE_ANGLE)
 
 if __name__ == "__main__":
   # testing

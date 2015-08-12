@@ -18,16 +18,16 @@ class SMLed:
   def __del__(self):
     GPIO.cleanup()
 
-  def red():
+  def red(self):
     GPIO.output(self.pins, (GPIO.HIGH, GPIO.LOW))
 
-  def green():
+  def green(self):
     GPIO.output(self.pins, (GPIO.LOW, GPIO.HIGH))
 
-  def yellow():
+  def yellow(self):
     GPIO.output(self.pins, (GPIO.HIGH, GPIO.HIGH))
 
-  def off():
+  def off(self):
     GPIO.output(self.pins, (GPIO.LOW, GPIO.LOW))
 
 if __name__ == "__main__":
