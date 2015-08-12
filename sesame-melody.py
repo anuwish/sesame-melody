@@ -182,7 +182,7 @@ class NoteDetector(threading.Thread):
         self.pitch_hopsize = hopsize
         self.pitch_samplerate = sample_rate
         self.pitch_tolerance = pitch_tolerance
-        self.pitch_min_confidence = pitch_min_confidence,
+        self.pitch_min_confidence = pitch_min_confidence
         self.silence_threshold = silence_threshold
         self.pitch_alg = create_pitch_alg(self.pitch_method,
                                           self.pitch_buffersize,
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     parser.add_argument("--pitch-tolerance", dest="pitch_tolerance", metavar="PITCH_TOLERANCE",
                         type=restricted_float, default=0.8)
     parser.add_argument("--pitch-min-confidence", dest="pitch_min_confidence", metavar="CONFIDENCEMIN",
-                        type=restricted_float, default=0.8)
+                        type=restricted_float, default=0.6)
     parser.add_argument("--onset-method", dest="onset_method", metavar="ONSET_METHOD",
                         type=str,
                         choices=["default","energy","hfc","complex","phase","specdiff","kl","mkl","specflux"],
