@@ -6,14 +6,14 @@ import numpy as np
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
-import threading, time, difflib, random, struct, os
+import threading, time, difflib, random, struct, os, ctypes
 
 # configuration
 try:
     import alsaaudio
     mixer = alsaaudio.Mixer(control='Mic', cardindex=0)
     mixer.setrec(1)
-    mixer.setvolume(75, 0, alsaaudio.PCM_CAPTURE)
+    mixer.setvolume(80, 0, alsaaudio.PCM_CAPTURE)
 except:
     pass
 
@@ -113,14 +113,14 @@ def get_target_pitch_midi():
 
 def get_target_pitch_freq():
     target_pitch = [
-        1046.5, 987.77, 698.46,                           # bar 06
-        880.00, 783.99, 698.46, 587.33,                     # bar 07
-        523.25, 587.33, 392.00, 587.33,                     # bar 08
-        659.26, 261.63, 329.63, 392.00, 523.25, 659.26, 783.99,   # bar 09
-        1046.5, 987.77, 698.46,                           # bar 10
-        880.00, 783.99, 698.46, 587.33,                     # bar 11
-        523.25, 659.26, 587.33, 659.26,                     # bar 12
-        587.33, 523.25                                  # bar 13
+        1046.5, 987.77, 698.46,                                 # bar 06
+        880.00, 783.99, 698.46, 587.33,                         # bar 07
+        523.25, 587.33, 392.00, 587.33,                         # bar 08
+        659.26, 261.63, 329.63, 392.00, 523.25, 659.26, 783.99, # bar 09
+        1046.5, 987.77, 698.46,                                 # bar 10
+        880.00, 783.99, 698.46, 587.33,                         # bar 11
+        523.25, 659.26, 587.33, 659.26,                         # bar 12
+        587.33, 523.25                                          # bar 13
     ]
     return target_pitch
 
@@ -155,7 +155,7 @@ class LevelAlg:
         return self.level_detection_alg(chunk, self.silence_threshold)
 
 class NoteDetector(threading.Thread):
-    def __init__(self, source, dq,
+    def __init__(self, source, dq, dq_insta,
                  hopsize=256,
                  sample_rate=44100,
                  onset_method="default",
@@ -171,6 +171,7 @@ class NoteDetector(threading.Thread):
         super(NoteDetector, self).__init__()
         self.source = source
         self.dq_external = dq
+        self.dq_external_insta = dq_insta
         self.onset_method = onset_method
         self.onset_buffersize = onset_buffersize
         self.onset_hopsize = hopsize
@@ -198,6 +199,7 @@ class NoteDetector(threading.Thread):
         self.level_alg = create_level_alg(self.silence_threshold)
 
     def run(self):
+        print "NoteDetector TID:", ctypes.CDLL('libc.so.6').syscall(224)
         median_buffer = [ ]
         run = True
         found_onset = False
@@ -222,6 +224,7 @@ class NoteDetector(threading.Thread):
                         med_pitch_array = np.around(np.array(median_buffer))
                         med_pitch = np.median(med_pitch_array)
                         self.dq_external.append(med_pitch)
+                        self.dq_external_insta.append(med_pitch)
                         # print med_pitch_array
                         # print med_pitch
                     median_buffer = []
@@ -310,7 +313,7 @@ def dummy(dq):
         time.sleep(1)
 
 class AnalyzeThread(threading.Thread):
-    def __init__(self,dq):
+    def __init__(self, dq, servo_state):
         super(AnalyzeThread, self).__init__()
         self.dq_external=dq
         self.number_notes_consider = int(31*1.10)
@@ -322,11 +325,12 @@ class AnalyzeThread(threading.Thread):
         self.sleep_timer = 0.1
         self.target_pitch = get_target_pitch_midi()
         self.base_notes_only = False
+        self.servo_state = servo_state
 
     def run(self):
+        print "AnalyzeThread TID:", ctypes.CDLL('libc.so.6').syscall(224)
         if self.base_notes_only:
             self.target_pitch[:] = [x % 12 for x in self.target_pitch]
-            print self.target_pitch
         perform_analysis = False
         while True:
             if len(self.dq_external) > 0:
@@ -335,9 +339,10 @@ class AnalyzeThread(threading.Thread):
                     tone = self.dq_external.popleft()
                     if self.base_notes_only:
                         tone = tone%12
-                    self.dq_ana.append(tone)
-                    self.dq_ana_lo.append(tone-1.0)
-                    self.dq_ana_hi.append(tone+1.0)
+                    if len(self.dq_ana) == 0 or self.dq_ana[-1] != tone:
+                        self.dq_ana.append(tone)
+                        self.dq_ana_lo.append(tone-1.0)
+                        self.dq_ana_hi.append(tone+1.0)
                 perform_analysis = True
             else:
                 time.sleep(self.sleep_timer)
@@ -352,10 +357,10 @@ class AnalyzeThread(threading.Thread):
                 sm_hi=difflib.SequenceMatcher(None,self.target_pitch,list_tones_hi)
                 if sm.ratio() > self.max_ratio:
                     self.max_ratio = sm.ratio()
-                print "CL: " + str(sm.ratio()) + " @" + str(list_tones)
-                print "CL (lo): " + str(sm_lo.ratio()) + " @" + str(list_tones_lo)
-                print "CL (hi): " + str(sm_hi.ratio()) + " @" + str(list_tones_hi)
-                print
+                # print "CL: " + str(sm.ratio()) + " @" + str(list_tones)
+                # print "CL (lo): " + str(sm_lo.ratio()) + " @" + str(list_tones_lo)
+                # print "CL (hi): " + str(sm_hi.ratio()) + " @" + str(list_tones_hi)
+                # print
                 #print sm.ratio()
                 if max(sm.ratio(), sm_lo.ratio(), sm_hi.ratio()) > self.threshold_detected:
                     print ""
@@ -370,9 +375,87 @@ class AnalyzeThread(threading.Thread):
                     self.dq_ana.clear()
                     self.dq_ana_lo.clear()
                     self.dq_ana_hi.clear()
+                    if self.servo_state == "closed":
+                        print "SERVO: OPEN!"
+                        self.servo_state = "open"
+                    else:
+                        print "SERVO: CLOSE!"
+                        self.servo_state = "open"
+
+class InstaAnalyzeThread(threading.Thread):
+    def __init__(self, dq):
+        super(InstaAnalyzeThread, self).__init__()
+        self.dq_external=dq
+        self.target_pitch = get_target_pitch_midi()
+        self.base_notes_only = False
+        self.sleep_timer = 0.01
+        self.max_num_fails = 3
+
+    def run(self):
+        print "InstaAnalyzeThread TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        if self.base_notes_only:
+            self.target_pitch[:] = [x % 12 for x in self.target_pitch]
+        index = 0
+        tone = -1
+        last_tone = 0
+        num_fails = 0
+
+        while True:
+            if len(self.dq_external) > 0:
+                # Feed new notes to own analysis deque
+                tone = self.dq_external.popleft()
+                if self.base_notes_only:
+                    tone = tone%12
+            else:
+                time.sleep(self.sleep_timer)
+
+            #print tone
+            if tone != last_tone:
+                # Check if note matches target pitch at index
+                if tone > 0 and tone == self.target_pitch[index]:
+                    index += 1
+                    num_fails = 0
+                    print tone, "matches at", index
+                    print "LED: GREEN!"
+                # Maybe next target tone?
+                elif tone > 0 and index < len(self.target_pitch)-1 and tone == self.target_pitch[index+1]:
+                    index += 2
+                    num_fails = 0
+                    print tone, "matches +1 at", index
+                    print "LED: GREEN!"
+                elif tone > 0 and index < len(self.target_pitch)-2 and tone == self.target_pitch[index+2]:
+                    index += 3
+                    num_fails = 0
+                    print tone, "matches +2 at", index
+                    print "LED: GREEN!"
+                elif tone > 0:
+                    num_fails += 1
+                    print tone, "fails at", index
+                    if index>0:
+                        print "LED: YELLOW!"
+                    else: 
+                        print "LED: RED!"
+                last_tone = tone
+
+            # If too many fails: abort
+            if num_fails > self.max_num_fails:
+                num_fails = 0
+                index = 0
+                print "LED: RED!"
+
+            if index >= len(self.target_pitch):
+                print "COMPLETE!"
+                num_fails = 0
+                index = 0
+                print "LED: GREEN!"
+
+            #time.sleep(self.sleep_timer)
+
 
 def main(opts):
     # inspired by aubionotes.c
+
+    print "Main process PID:", os.getpid()
 
     input_device_pi = {
        'default_high_input_latency': 0.046439909297052155,
@@ -392,7 +475,9 @@ def main(opts):
        'struct_version': 2
     }
 
-
+    servo_state = "closed"
+    print "SERVO: CLOSE!"
+    print "LED: RED!"
 
     input_device = True
     if opts.pi:
@@ -408,15 +493,20 @@ def main(opts):
             source = SourceSoundcard(opts.sample_rate, opts.hop_size, input_device)
 
     dq_alltones = deque(maxlen=10000)
+    dq_alltones_insta = deque(maxlen=10000)
 
-    analyser = AnalyzeThread(dq_alltones)
+    analyser = AnalyzeThread(dq_alltones, servo_state)
     analyser.daemon = True
     analyser.start()
+
+    analyser_insta = InstaAnalyzeThread(dq_alltones_insta)
+    analyser_insta.daemon = True
+    analyser_insta.start()
 
     if opts.dummy:
         dummy(dq_alltones)
     else:
-        notedetect = NoteDetector(source, dq_alltones,
+        notedetect = NoteDetector(source, dq_alltones, dq_alltones_insta,
                                   hopsize=opts.hop_size,
                                   sample_rate=opts.sample_rate,
                                   onset_method=opts.onset_method,
