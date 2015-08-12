@@ -200,7 +200,10 @@ class NoteDetector(threading.Thread):
         self.debug = debug
 
     def run(self):
-        print "NoteDetector TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        try:
+            print "NoteDetector TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        except:
+            pass
         median_buffer = [ ]
         run = True
         found_onset = False
@@ -296,7 +299,10 @@ class AnalyzeThread(threading.Thread):
         self.debug = debug
 
     def run(self):
-        print "AnalyzeThread TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        try:
+            print "AnalyzeThread TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        except:
+            pass
         if self.base_notes_only:
             self.target_pitch[:] = [x % 12 for x in self.target_pitch]
         perform_analysis = False
@@ -363,7 +369,10 @@ class InstaAnalyzeThread(threading.Thread):
         self.debug = debug
 
     def run(self):
-        print "InstaAnalyzeThread TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        try:
+            print "InstaAnalyzeThread TID:", ctypes.CDLL('libc.so.6').syscall(224)
+        except:
+            pass
         if self.base_notes_only:
             self.target_pitch[:] = [x % 12 for x in self.target_pitch]
         index = 0
