@@ -365,9 +365,9 @@ class AnalyzeThread(threading.Thread):
                     self.logger.debug("AnalyzeThread: CL (hi): " + str(sm_hi.ratio()) + " @" + str(list_tones_hi))
                 #print sm.ratio()
                 if max(sm.ratio(), sm_lo.ratio(), sm_hi.ratio()) > self.threshold_detected:
-                    self.logger.debug("AnalyzeThread: YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")")
-                    self.logger.debug("AnalyzeThread: Analyzed list: ")
-                    self.logger.debug("AnalyzeThread: " + str(list_tones))
+                    self.logger.info("AnalyzeThread: YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")")
+                    self.logger.info("AnalyzeThread: Analyzed list: ")
+                    self.logger.info("AnalyzeThread: " + str(list_tones))
                     self.dq_ana.clear()
                     self.dq_ana_lo.clear()
                     self.dq_ana_hi.clear()
