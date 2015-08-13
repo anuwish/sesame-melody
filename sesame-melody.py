@@ -227,7 +227,7 @@ class NoteDetector(threading.Thread):
             # check for onset
             if not found_onset:
                 if onset > 0. and level != 1.:
-                    self.logger.debug("Found an onset! Starting to fill the buffer!")
+                    self.logger.debug("NoteDetector: Found an onset! Starting to fill the buffer!")
                     found_onset = True
                     median_buffer.append(pitch)
                 else:
@@ -249,8 +249,8 @@ class NoteDetector(threading.Thread):
                         med_pitch = np.median(med_pitch_array)
                         self.dq_external.append(med_pitch)
                         self.dq_external_insta.append(med_pitch)
-                        print med_pitch_array
-                        print med_pitch
+                        self.logger.debug("NoteDetector: " + str(med_pitch_array))
+                        self.logger.debug("NoteDetector: " + str(med_pitch))
                     median_buffer = []
                 else:
                     if not pitch == 0.0 and not confidence < 0.6:
@@ -317,6 +317,7 @@ class AnalyzeThread(threading.Thread):
         self.servo_state = servo_state
         self.srv = srv
         self.debug = debug
+        self.logger = logging.getLogger("SesameMelody")
 
     def run(self):
         try:
@@ -331,12 +332,19 @@ class AnalyzeThread(threading.Thread):
                 # Feed new notes to own analysis deque
                 while len(self.dq_external) > 0:
                     tone = self.dq_external.popleft()
-                    if self.base_notes_only:
-                        tone = tone%12
-                    if len(self.dq_ana) == 0 or self.dq_ana[-1] != tone:
-                        self.dq_ana.append(tone)
-                        self.dq_ana_lo.append(tone-1.0)
-                        self.dq_ana_hi.append(tone+1.0)
+                    if tone > 0:
+                        if self.base_notes_only:
+                            tone = tone%12
+                        if len(self.dq_ana) == 0 or self.dq_ana[-1] != tone:
+                            self.dq_ana.append(tone)
+                            self.dq_ana_lo.append(tone-1.0)
+                            self.dq_ana_hi.append(tone+1.0)
+                    elif tone == -10:
+                        # SILENCE, I KILL YOU!
+                        self.logger.debug("AnalyzeThread: Got silence. Killing buffers.")
+                        self.dq_ana.clear()
+                        self.dq_ana_lo.clear()
+                        self.dq_ana_hi.clear()
                 perform_analysis = True
             else:
                 time.sleep(self.sleep_timer)
@@ -352,21 +360,14 @@ class AnalyzeThread(threading.Thread):
                 if sm.ratio() > self.max_ratio:
                     self.max_ratio = sm.ratio()
                 if self.debug:
-                    print "CL: " + str(sm.ratio()) + " @" + str(list_tones)
-                    print "CL (lo): " + str(sm_lo.ratio()) + " @" + str(list_tones_lo)
-                    print "CL (hi): " + str(sm_hi.ratio()) + " @" + str(list_tones_hi)
-                    print
+                    self.logger.debug("AnalyzeThread: CL: " + str(sm.ratio()) + " @" + str(list_tones))
+                    self.logger.debug("AnalyzeThread: CL (lo): " + str(sm_lo.ratio()) + " @" + str(list_tones_lo))
+                    self.logger.debug("AnalyzeThread: CL (hi): " + str(sm_hi.ratio()) + " @" + str(list_tones_hi))
                 #print sm.ratio()
                 if max(sm.ratio(), sm_lo.ratio(), sm_hi.ratio()) > self.threshold_detected:
-                    print ""
-                    print ""
-                    print ""
-                    print "YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")"
-                    print "Analyzed list: "
-                    print list_tones
-                    print ""
-                    print ""
-                    print ""
+                    self.logger.debug("AnalyzeThread: YEAH! DETECTED @" + str(sm.ratio()) + " (max: " + str(self.max_ratio) + ")")
+                    self.logger.debug("AnalyzeThread: Analyzed list: ")
+                    self.logger.debug("AnalyzeThread: " + str(list_tones))
                     self.dq_ana.clear()
                     self.dq_ana_lo.clear()
                     self.dq_ana_hi.clear()
@@ -387,6 +388,7 @@ class InstaAnalyzeThread(threading.Thread):
         self.max_num_fails = 3
         self.led = led
         self.debug = debug
+        self.logger = logging.getLogger("SesameMelody")
 
     def run(self):
         try:
@@ -404,8 +406,15 @@ class InstaAnalyzeThread(threading.Thread):
             if len(self.dq_external) > 0:
                 # Feed new notes to own analysis deque
                 tone = self.dq_external.popleft()
-                if self.base_notes_only:
-                    tone = tone%12
+                if tone > 0:
+                    if self.base_notes_only:
+                        tone = tone%12
+                elif tone == -10:
+                    # SILENCE, I KILL YOU!
+                    self.logger.debug("InstaAnalyzeThread: Got silence. Resetting and setting LED red.")
+                    num_fails = 0
+                    index = 0
+                    self.led.red()
             else:
                 time.sleep(self.sleep_timer)
 
@@ -593,11 +602,17 @@ if __name__ == "__main__":
 
     # create logger
     logger = logging.getLogger("SesameMelody")
-    logger.setLevel(logging.DEBUG)
+    if opts.debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     # create console handler and set level to debug
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    if opts.debug:
+        ch.setLevel(logging.DEBUG)
+    else:
+        ch.setLevel(logging.INFO)
 
     # create formatter
     formatter = logging.Formatter('%(asctime)s - %(message)s','%Y-%m-%d %H:%M:%S')
