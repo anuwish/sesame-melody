@@ -467,7 +467,9 @@ class BlinkyThread(threading.Thread):
         self.led = led
         self.dot_matrix = dot_matrix
         self.logger = logging.getLogger("SesameMelody")
-
+    def __del__(self):
+        self.led.red()
+        self.dot_matrix.level(0)
     def run(self):
         self.logger.info("BlinkyThread: Starting!")
         self.led.red()
