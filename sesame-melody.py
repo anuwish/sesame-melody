@@ -254,7 +254,7 @@ class NoteDetector(threading.Thread):
                         self.dq_external_insta.append(med_pitch)
                         self.logger.debug("NoteDetector: " + str(med_pitch_array))
                         self.logger.debug("NoteDetector: " + str(med_pitch))
-                    median_buffer = []
+                        median_buffer = []
                 else:
                     if not pitch == 0.0 and not confidence < 0.6:
                         median_buffer.append(pitch)
