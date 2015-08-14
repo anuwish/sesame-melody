@@ -213,8 +213,9 @@ class NoteDetector(threading.Thread):
         median_buffer = [ ]
         run = True
         found_onset = False
-        silence_begin = time.time()
-        silence_end = None
+        silence_duration = 0
+        silence_begin = 0
+        silence_end = 0
         while run:
             samples = self.source.get_next_chunk()
             level = self.level_alg(samples)
@@ -229,32 +230,28 @@ class NoteDetector(threading.Thread):
                     self.logger.debug("NoteDetector: Found an onset! Starting to fill the buffer!")
                     found_onset = True
                     median_buffer.append(pitch)
-                    silence_begin = None
-                    silence_end = None
                 else:
-                    silence_end = time.time()
-                    silence_duration = silence_end - silence_begin
-                    if silence_duration > self.duration_until_silence:
-                        self.logger.debug("NoteDetector: Found Silence of %f", silence_duration)
+                    silence_duration += 1
+                    if silence_duration*self.pitch_seconds_per_block > self.duration_until_silence:
                         self.dq_external.append(-10)
                         self.dq_external_insta.append(-10)
-                        silence_begin = time.time()
-                        silence_end = None
+                        silence_duration = 0
                 continue
             else:
                 if onset > 0. or level == 1.:
-                   self.logger.debug("Found a new onset or silence! Start analysing notes in buffer.")
-                   if level == 1.:
+                    if level == 1.:
                         found_onset = False
+                        silence_duration = 1
                         silence_begin = time.time()
-                   if median_buffer: # check that buffer is not empty
+                    #print "Found a new onset or silence! Start analysing notes in buffer."
+                    if median_buffer: # check that buffer is not empty
                         med_pitch_array = np.around(np.array(median_buffer))
                         med_pitch = np.median(med_pitch_array)
                         self.dq_external.append(med_pitch)
                         self.dq_external_insta.append(med_pitch)
                         self.logger.debug("NoteDetector: " + str(med_pitch_array))
                         self.logger.debug("NoteDetector: " + str(med_pitch))
-                        median_buffer = []
+                    median_buffer = []
                 else:
                     if not pitch == 0.0 and not confidence < 0.6:
                         median_buffer.append(pitch)
@@ -345,7 +342,7 @@ class AnalyzeThread(threading.Thread):
                 sm=difflib.SequenceMatcher(None,self.target_pitch,list_tones)
                 sm_lo=difflib.SequenceMatcher(None,self.target_pitch,list_tones_lo)
                 sm_hi=difflib.SequenceMatcher(None,self.target_pitch,list_tones_hi)
-                dm_level = int((sm.ratio()-0.2) / (self.threshold_detected-0.2) * 7.0 * 1.05)
+                dm_level = int((sm.ratio()-0.15) / (self.threshold_detected-0.15) * 7.0 * 1.05)
                 if sm.ratio() > self.max_ratio:
                     self.max_ratio = sm.ratio()
                 if self.debug:
