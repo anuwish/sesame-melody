@@ -5,6 +5,7 @@ import aubio
 import numpy as np
 import time
 import logging
+import atexit
 import pysoundcard as psc
 from collections import deque
 from itertools import groupby
@@ -498,9 +499,11 @@ class BlinkyThread(threading.Thread):
 
 
 def main(opts):
+    logger = logging.getLogger("SesameMelody")
+
     # inspired by aubionotes.c
 
-    print "Main process PID:", os.getpid()
+    logger.debug("Main process PID: %d", os.getpid())
 
     input_device_pi = {
        'default_high_input_latency': 0.046439909297052155,
@@ -581,7 +584,9 @@ def main(opts):
     try:
         while True: time.sleep(0.2)
     except (KeyboardInterrupt, SystemExit):
-        print '\n! Received keyboard interrupt, quitting threads.\n'
+        logger.warning('\n! Received keyboard interrupt, quitting threads.\n')
+        dq_led.append(0)
+        
 
     return
 
