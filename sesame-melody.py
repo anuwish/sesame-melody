@@ -257,22 +257,6 @@ class NoteDetector(threading.Thread):
                         median_buffer.append(pitch)
                 continue
 
-            # if confidence>0.9:
-            #     #print(onset, pitch, confidence)
-            #     self.dq_external.append((onset, pitch, confidence))
-
-        #     pitches += [pitch]
-        #     confidences += [confidence]
-        #     # total_frames += read
-        #     # if read < opts.hop_size: break
-        #
-        # skip = 1 # skip the first note
-        # pitches = np.array(pitches[skip:])
-        # confidences = np.array(confidences[skip:])
-        # times = [t * opts.hop_size for t in range(len(pitches))]
-
-
-
 def dummy(dq):
     l_detect = [
         (85.0, 1),   (84.0, 111), (83.0, 123), (77.0, 37), (65.0, 1),
@@ -504,8 +488,8 @@ def main(opts):
         elif opts.soundinterface == "pysoundcard" and not opts.dummy:
             source = SourceSoundcard(opts.sample_rate, opts.hop_size, input_device)
 
-    dq_alltones = deque(maxlen=10000)
-    dq_alltones_insta = deque(maxlen=10000)
+    dq_alltones = deque(maxlen=1000)
+    dq_alltones_insta = deque(maxlen=1000)
 
     analyser = AnalyzeThread(dq_alltones, servo_state, srv, base_notes_only=opts.base_notes_only, debug=opts.debug)
     analyser.daemon = True
@@ -625,9 +609,5 @@ if __name__ == "__main__":
 
     # 'application' code
     logger.info('Welcome to Sesame Melody!')
-    #logger.debug('debug message')
-    #logger.warn('warn message')
-    #logger.error('error message')
-    #logger.critical('critical message')
 
     main(opts)
