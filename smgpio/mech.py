@@ -1,3 +1,4 @@
+import logging
 import time
 import os
 
@@ -28,6 +29,8 @@ class Servo:
   T_MAX = ANGLE_RANGE/60.0 * T_PER_60
 
   def __init__(self, pin):
+    self.logger = logging.getLogger("SesameMelody")
+
     # GPIO PWN pin number
     self.pin = pin
     # log current position as hardware feedback is not possible
@@ -46,15 +49,15 @@ class Servo:
         self.servo.stop_servo(self.pin)
         time.sleep(2)
       else: 
-        print 'WARNING: Servo initial position outside of allowed range'
+        self.logger.critical("Servo initial position outside of allowed range")
     else:
-      print 'smgpio.mech.mockup', '__init__(self, pin)'
+      self.logger.log(0, "smgpio.mech.mockup', '__init__(self, pin)")
 
   def __del__(self):
     if not Servo.mockup:
       Servo.PWM.cleanup()
     else:
-      print 'smgpio.mech.mockup', '__del__(self)'
+      self.logger.log(0, "smgpio.mech.mockup', '__del__(self)")
 
   def pulse_length(self, angle):
     if not Servo.mockup:
@@ -63,7 +66,7 @@ class Servo:
       pl = Servo.MIN_PULSE_WIDTH + (increment * angle)
       return pl
     else:
-      print 'smgpio.mech.mockup', 'pulse_length(self, angle)'   
+      self.logger.log(0, "smgpio.mech.mockup', 'pulse_length(self, angle)")
 
   def duration(self, angle):
     if not Servo.mockup:
@@ -73,7 +76,7 @@ class Servo:
       self.pos = angle
       return d
     else:
-      print 'smgpio.mech.mockup', 'duration(self, angle)'   
+      self.logger.log(0, "smgpio.mech.mockup', 'duration(self, angle)")
 
   def move(self, angle):
     if not Servo.mockup:
@@ -87,25 +90,25 @@ class Servo:
         self.servo.stop_servo(self.pin)
         time.sleep(1)
       else: 
-        print 'WARNING: Servo initial position outside of allowed range'
+        self.logger.critical("Servo initial position outside of allowed range")
     else:
-      print 'smgpio.mech.mockup', 'move(self, angle)'   
+      self.logger.log(0, "smgpio.mech.mockup', 'move(self, angle)")
 
   def open(self):
     if not Servo.mockup:
       # open servo
-      print "Open servo"
+      self.logger.info("Open servo")
       self.move(Servo.OPEN_ANGLE)
     else:
-      print 'smgpio.mech.mockup', 'open(self)'   
+      self.logger.log(0, "smgpio.mech.mockup', 'open(self)")
 
   def close(self):
     if not Servo.mockup:
       # close servo
-      print "Close servo"
+      self.logger.info("Close servo")
       self.move(Servo.CLOSE_ANGLE)
     else:
-      print 'smgpio.mech.mockup', 'close(self)'   
+      self.logger.log(0, "smgpio.mech.mockup', 'close(self)") 
 
 if __name__ == "__main__":
   # testing

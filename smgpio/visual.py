@@ -1,3 +1,4 @@
+import logging
 import time
 import os
 
@@ -13,6 +14,7 @@ class Led:
   def __init__(self, pin_red, pin_green):
     # RPi.GPIO pin number for red and green led control
     self.pins = [pin_red, pin_green]
+    self.logger = logging.getLogger("SesameMelody")
 
     if not Led.mockup:
       # initialise GPIO pins and define as output
@@ -23,37 +25,37 @@ class Led:
       # switch LED to red
       Led.GPIO.output(self.pins, (Led.GPIO.HIGH, Led.GPIO.LOW))
     else:
-      print 'smgpio.visual.led.mockup', '__init__(self, pin_red, pin_green)'
+      self.logger.log(0, "smgpio.visual.led.mockup', '__init__(self, pin_red, pin_green)")
 
   def cleanup(self):
     if not Led.mockup:
       Led.GPIO.cleanup()
     else:
-      print 'smgpio.visual.led.mockup', 'cleanup(self)'
+      self.logger.log(0, "smgpio.visual.led.mockup', 'cleanup(self)")
 
   def red(self):
     if not Led.mockup:
       Led.GPIO.output(self.pins, (Led.GPIO.HIGH, Led.GPIO.LOW))
     else:
-      print 'smgpio.visual.led.mockup', 'red(self)'
+      self.logger.log(0, "smgpio.visual.led.mockup', 'red(self)")
 
   def green(self):
     if not Led.mockup:
       Led.GPIO.output(self.pins, (Led.GPIO.LOW, Led.GPIO.HIGH))
     else:
-      print 'smgpio.visual.led.mockup', 'green(self)'
+      self.logger.log(0, "smgpio.visual.led.mockup', 'green(self)")
 
   def yellow(self):
     if not Led.mockup:
       Led.GPIO.output(self.pins, (Led.GPIO.HIGH, Led.GPIO.HIGH))
     else:
-      print 'smgpio.visual.led.mockup', 'yellow(self)'
+      self.logger.log(0, "smgpio.visual.led.mockup', 'yellow(self)")
 
   def off(self):
     if not Led.mockup:
       Led.GPIO.output(self.pins, (Led.GPIO.LOW, Led.GPIO.LOW))
     else:
-      print 'smgpio.visual.led.mockup', 'off(self)'
+      self.logger.log(0, "smgpio.visual.led.mockup', 'off(self)")
 
 class DotMatrix:
   # create mockup to develop w/o need for an RasPi
@@ -103,17 +105,19 @@ class DotMatrix:
   row_dict = {0 : pinR1, 1 : pinR2, 2 : pinR3, 3 : pinR4, 4 : pinR5, 5 : pinR6, 6 : pinR7}
 
   def __init__(self):
+    self.logger = logging.getLogger("SesameMelody")
+
     if not DotMatrix.mockup:
       # initialise GPIO pins
       DotMatrix.GPIO.setmode(DotMatrix.GPIO.BOARD)
     else:
-      print 'smgpio.visual.dotmatrix.mockup', '__init__(self)'
+      self.logger.log(0, "smgpio.visual.dotmatrix.mockup', '__init__(self)")
 
   def cleanup(self):
     if not DotMatrix.mockup:
       DotMatrix.GPIO.cleanup()
     else:
-      print 'smgpio.visual.dotmatrix.mockup', 'cleanup(self)'
+      self.logger.log(0, "smgpio.visual.dotmatrix.mockup', 'cleanup(self)")
 
   def dot_on(self, col, row):
     if not DotMatrix.mockup:
@@ -123,7 +127,7 @@ class DotMatrix:
       DotMatrix.GPIO.output(col, 1)
       DotMatrix.GPIO.output(row, 0)
     else:
-      print 'smgpio.visual.dotmatrix.mockup', 'dot_on(self, col, row)'
+      self.logger.log(0, "smgpio.visual.dotmatrix.mockup', 'dot_on(self, col, row)")
 
   def level(self, lvl):
     if not DotMatrix.mockup:
@@ -138,7 +142,7 @@ class DotMatrix:
         DotMatrix.GPIO.setup(DotMatrix.row_dict[i], DotMatrix.GPIO.OUT)
         DotMatrix.GPIO.output(DotMatrix.row_dict[i], 0)
     else:
-      print 'smgpio.visual.dotmatrix.mockup', 'level(self, lvl)'
+      self.logger.log(0, "smgpio.visual.dotmatrix.mockup', 'level(self, lvl)")
 
   def flash(self, t):
     if not DotMatrix.mockup:
@@ -158,7 +162,7 @@ class DotMatrix:
         time.sleep(time_per_flash)
         c = c + 1
     else:
-      print 'smgpio.visual.dotmatrix.mockup', 'flash(self)'
+      self.logger.log(0, "smgpio.visual.dotmatrix.mockup', 'flash(self)")
 
 
 if __name__ == "__main__":
