@@ -19,23 +19,22 @@ LED (Kingbright, L-115WEGW bi-color LED) is up and running using the [RPi.GPIO](
 Dot Matrix Display (Kingbright, TA07-11SRWA, 5x7) up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module. 
 
 ### Wiring
-C for column
-R for row
-DMD for internal wiring
-GPIO pin naming
-PIN physical numbering
-* C1 = DMD1  = GPIO11 = PIN23
-* C2 = DMD3  = GPIO8  = PIN24
-* C3 = DMD10 = GPIO7  = PIN26
-* C4 = DMD7  = GPIO5  = PIN29
-* C5 = DMD8  = GPIO6  = PIN31
-* R1 = DMD12 = GPIO12 = PIN32
-* R2 = DMD11 = GPIO13 = PIN33
-* R3 = DMD2  = GPIO19 = PIN35
-* R4 = DMD9  = GPIO16 = PIN36
-* R5 = DMD4  = GPIO26 = PIN37
-* R6 = DMD5  = GPIO20 = PIN38
-* R7 = DMD6  = GPIO21 = PIN40
+C for column, R for row   
+DMD for internal wiring   
+GPIO pin naming   
+PIN physical numbering   
+* `C1 = DMD1  = GPIO11 = PIN23`
+* `C2 = DMD3  = GPIO8  = PIN24`
+* `C3 = DMD10 = GPIO7  = PIN26`
+* `C4 = DMD7  = GPIO5  = PIN29`
+* `C5 = DMD8  = GPIO6  = PIN31`
+* `R1 = DMD12 = GPIO12 = PIN32`
+* `R2 = DMD11 = GPIO13 = PIN33`
+* `R3 = DMD2  = GPIO19 = PIN35`
+* `R4 = DMD9  = GPIO16 = PIN36`
+* `R5 = DMD4  = GPIO26 = PIN37`
+* `R6 = DMD5  = GPIO20 = PIN38`
+* `R7 = DMD6  = GPIO21 = PIN40`
 
 ## Servo
 
