@@ -11,8 +11,12 @@ LED (Kingbright, L-115WEGW bi-color LED) is up and running using the [RPi.GPIO](
 
 ### Wiring
 * PIN14 GND (longest/center LED pin)
-* PIN15 RED (next longest/right LED pin)
+* PIN13 RED (next longest/right LED pin)
 * PIN16 GREEN (shortest/left LED pin)
+
+## Dot Matrix Display
+
+
 
 ## Servo
 

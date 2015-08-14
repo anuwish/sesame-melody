@@ -21,30 +21,34 @@ class Servo:
   MIN_PULSE_WIDTH = 500
   MAX_PULSE_WIDTH = 2400 
   NEUTRAL_WIDTH = 0.5 * (MAX_PULSE_WIDTH + MIN_PULSE_WIDTH)
-  OPEN_ANGLE = 180
-  CLOSE_ANGLE = 0
-  
+  OPEN_ANGLE = 30
+  CLOSE_ANGLE = 95
+  INIT_ANGLE = OPEN_ANGLE
   T_PER_60 = 0.17 # tested, not for sure
   T_MAX = ANGLE_RANGE/60.0 * T_PER_60
 
-  def __init__(self, pin, init_pos):
+  def __init__(self, pin):
     # GPIO PWN pin number
     self.pin = pin
     # log current position as hardware feedback is not possible
     # thus, an initialisation value is necessary
-    self.pos = init_pos
+    self.pos = Servo.INIT_ANGLE
 
     if not Servo.mockup:
       # initialise RPIO servo instance
       self.servo = Servo.PWM.Servo()
 
-      # move to initial POS
-      self.servo.set_servo(self.pin, self.pulse_length(self.pos))
-      time.sleep(Servo.T_MAX)
-      self.servo.stop_servo(self.pin)
-      time.sleep(1)
+      # test if movement is in allowed range
+      if self.pos < Servo.CLOSE_ANGLE or self.pos > Servo.OPEN_ANGLE:
+        # move to initial POS
+        self.servo.set_servo(self.pin, self.pulse_length(self.pos))
+        time.sleep(Servo.T_MAX)
+        self.servo.stop_servo(self.pin)
+        time.sleep(2)
+      else: 
+        print 'WARNING: Servo initial position outside of allowed range'
     else:
-      print 'smgpio.mech.mockup', '__init__(self, pin, init_pos)'
+      print 'smgpio.mech.mockup', '__init__(self, pin)'
 
   def __del__(self):
     if not Servo.mockup:
@@ -73,12 +77,17 @@ class Servo:
 
   def move(self, angle):
     if not Servo.mockup:
-      # move 'servo' to 'angle'
-      #print "Move servo to", angle
-      self.servo.set_servo(self.pin, self.pulse_length(angle))
-      time.sleep(self.duration(angle))
-      self.servo.stop_servo(self.pin)
-      time.sleep(1)
+
+      # test if movement is in allowed range
+      if angle < Servo.CLOSE_ANGLE or angle > Servo.OPEN_ANGLE:
+        # move 'servo' to 'angle'
+        #print "Move servo to", angle
+        self.servo.set_servo(self.pin, self.pulse_length(angle))
+        time.sleep(self.duration(angle))
+        self.servo.stop_servo(self.pin)
+        time.sleep(1)
+      else: 
+        print 'WARNING: Servo initial position outside of allowed range'
     else:
       print 'smgpio.mech.mockup', 'move(self, angle)'   
 
@@ -100,7 +109,7 @@ class Servo:
 
 if __name__ == "__main__":
   # testing
-  servo = Servo(18, 90)
-  servo.open()
+  servo = Servo(18)
+  #servo.open()
   servo.close()
 
