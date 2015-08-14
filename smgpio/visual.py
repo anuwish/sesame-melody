@@ -137,41 +137,28 @@ class DotMatrix:
       for i in range(lvl):
         DotMatrix.GPIO.setup(DotMatrix.row_dict[i], DotMatrix.GPIO.OUT)
         DotMatrix.GPIO.output(DotMatrix.row_dict[i], 0)
-      DotMatrix.GPIO.setmode(DotMatrix.GPIO.BOARD)
     else:
       print 'smgpio.visual.dotmatrix.mockup', 'level(self, lvl)'
 
-  # WIP, ccauet 2015-08-13
-  # def pattern_on(self, pattern):
-  #   # switch of all pins
-  #   DotMatrix.GPIO.setup(DotMatrix.columns, DotMatrix.GPIO.IN)
-  #   DotMatrix.GPIO.setup(DotMatrix.rows, DotMatrix.GPIO.IN)
+  def flash(self, t):
+    if not DotMatrix.mockup:
+      time_per_flash = 0.1 # in sec.
+      duration = int(round(t/(2.0*time_per_flash)))
 
-  #   for iteration in range(50):
+      # active all columns and rows
+      DotMatrix.GPIO.setup(DotMatrix.columns, DotMatrix.GPIO.OUT)
+      DotMatrix.GPIO.setup(DotMatrix.rows, DotMatrix.GPIO.OUT)
+      # switch on all rows
+      DotMatrix.GPIO.output(DotMatrix.rows, 0)
 
-  #     nr = 0
-  #     # loop over rows
-  #     for r in pattern:
-  #       # activate row
-  #       DotMatrix.GPIO.setup(DotMatrix.row_dict[nr], DotMatrix.GPIO.OUT)
-  #       DotMatrix.GPIO.output(DotMatrix.row_dict[nr], 0)
-
-  #       # loop over columns
-  #       nc = 0
-  #       for c in r:
-  #         # switch on column
-  #         DotMatrix.GPIO.setup(DotMatrix.col_dict[nc], DotMatrix.GPIO.OUT)
-  #         DotMatrix.GPIO.output(DotMatrix.col_dict[nc], pattern[nr][nc])
-
-  #         nc = nc + 1
-
-  #       # deactivate row
-  #       time.sleep(0.01)
-  #       DotMatrix.GPIO.setup(DotMatrix.row_dict[nr], DotMatrix.GPIO.IN)
-
-  #       nr = nr + 1
-
-  #     time.sleep(0.01)
+      for c in range(duration):
+        DotMatrix.GPIO.output(DotMatrix.columns, 1)
+        time.sleep(time_per_flash)
+        DotMatrix.GPIO.output(DotMatrix.columns, 0)
+        time.sleep(time_per_flash)
+        c = c + 1
+    else:
+      print 'smgpio.visual.dotmatrix.mockup', 'flash(self)'
 
 
 if __name__ == "__main__":
@@ -179,20 +166,22 @@ if __name__ == "__main__":
   # dot matrix testing
   dmd = DotMatrix()
 
-  dmd.level(3)
-  time.sleep(2)
-  dmd.level(5)
-  time.sleep(2)
-  dmd.level(3)
-  time.sleep(2)
+  # dmd.level(3)
+  # time.sleep(2)
+  # dmd.level(5)
+  # time.sleep(2)
+  # dmd.level(3)
+  # time.sleep(2)
+
+  dmd.flash(10)
 
   dmd.cleanup()
 
 
   # LED testing
-  led = Led(15, 16)
+  led = Led(13, 16)
 
-  for i in range(10):
+  for i in range(5):
     led.red()
     time.sleep(0.5)
     led.off()

@@ -286,7 +286,7 @@ def dummy(dq):
         time.sleep(1)
 
 class AnalyzeThread(threading.Thread):
-    def __init__(self, dq, servo_state, srv, base_notes_only=False, debug=False):
+    def __init__(self, dq, servo_state, srv, dq_matrix, base_notes_only=False, debug=False):
         super(AnalyzeThread, self).__init__()
         self.dq_external=dq
         self.number_notes_consider = int(31*1.10)
@@ -300,6 +300,7 @@ class AnalyzeThread(threading.Thread):
         self.base_notes_only = base_notes_only
         self.servo_state = servo_state
         self.srv = srv
+        self.dq_matrix = dq_matrix
         self.debug = debug
         self.logger = logging.getLogger("SesameMelody")
 
@@ -341,6 +342,7 @@ class AnalyzeThread(threading.Thread):
                 sm=difflib.SequenceMatcher(None,self.target_pitch,list_tones)
                 sm_lo=difflib.SequenceMatcher(None,self.target_pitch,list_tones_lo)
                 sm_hi=difflib.SequenceMatcher(None,self.target_pitch,list_tones_hi)
+                dm_level = int(sm.ratio() / self.threshold_detected * 7.0)
                 if sm.ratio() > self.max_ratio:
                     self.max_ratio = sm.ratio()
                 if self.debug:
@@ -360,17 +362,20 @@ class AnalyzeThread(threading.Thread):
                         self.servo_state = "open"
                     else:
                         self.srv.close()
-                        self.servo_state = "open"
+                        self.servo_state = "closed"
+                    self.dq_matrix.append(10)    
+                else:
+                    self.dq_matrix.append(dm_level)
 
 class InstaAnalyzeThread(threading.Thread):
-    def __init__(self, dq, led, base_notes_only=False, debug=False):
+    def __init__(self, dq, dq_led, base_notes_only=False, debug=False):
         super(InstaAnalyzeThread, self).__init__()
         self.dq_external=dq
+        self.dq_led=dq_led
         self.target_pitch = get_target_pitch_midi()
         self.base_notes_only = base_notes_only
         self.sleep_timer = 0.01
         self.max_num_fails = 3
-        self.led = led
         self.debug = debug
         self.logger = logging.getLogger("SesameMelody")
 
@@ -398,7 +403,8 @@ class InstaAnalyzeThread(threading.Thread):
                     self.logger.debug("InstaAnalyzeThread: Got silence. Resetting and setting LED red.")
                     num_fails = 0
                     index = 0
-                    self.led.red()
+                    # self.led.red()
+                    self.dq_led.append(0)
             else:
                 time.sleep(self.sleep_timer)
 
@@ -409,40 +415,86 @@ class InstaAnalyzeThread(threading.Thread):
                     index += 1
                     num_fails = 0
                     # print tone, "matches at", index
-                    self.led.green()
+                    # self.led.green()
+                    self.dq_led.append(2)
                 # Maybe next target tone?
                 elif tone > 0 and index < len(self.target_pitch)-1 and tone == self.target_pitch[index+1]:
                     index += 2
                     num_fails = 0
                     # print tone, "matches +1 at", index
-                    self.led.green()
+                    # self.led.green()
+                    self.dq_led.append(2)
                 elif tone > 0 and index < len(self.target_pitch)-2 and tone == self.target_pitch[index+2]:
                     index += 3
                     num_fails = 0
                     # print tone, "matches +2 at", index
-                    self.led.green()
+                    # self.led.green()
+                    self.dq_led.append(2)
                 elif tone > 0:
                     num_fails += 1
                     # print tone, "fails at", index
                     if index>0:
-                        self.led.yellow()
+                        # self.led.yellow()
+                        self.dq_led.append(1)
                     else:
-                        self.led.red()
+                        # self.led.red()
+                        self.dq_led.append(0)
                 last_tone = tone
 
             # If too many fails: abort
             if num_fails > self.max_num_fails:
                 num_fails = 0
                 index = 0
-                self.led.red()
+                # self.led.red()
+                self.dq_led.append(0)
 
             if index >= len(self.target_pitch):
-                print "INSTA SEQUENCE COMPLETE!"
+                self.logger.info("InstaAnalyzeThread: INSTA SEQUENCE COMPLETE!")
                 num_fails = 0
                 index = 0
-                self.led.green()
+                # self.led.green()
+                self.dq_led.append(2)
 
             #time.sleep(self.sleep_timer)
+
+class BlinkyThread(threading.Thread):
+    def __init__(self, dq_led, dq_matrix, led, dot_matrix):
+        super(BlinkyThread, self).__init__()
+        self.dq_led=dq_led
+        self.dq_matrix=dq_matrix
+        self.sleep_timer = 0.01
+        self.led = led
+        self.dot_matrix = dot_matrix
+        self.logger = logging.getLogger("SesameMelody")
+
+    def run(self):
+        self.logger.info("BlinkyThread: Starting!")
+        self.led.red()
+        self.dot_matrix.level(0)
+        led_level = 0 
+        dm_level = 0
+
+        while True:
+            if len(self.dq_led) > 0:
+                led_level = self.dq_led.popleft()
+            if len(self.dq_matrix) > 0:
+                # Feed new notes to own deque
+                dm_level = self.dq_matrix.popleft()
+
+            if led_level == 0:
+                self.led.red()
+            elif led_level == 1:
+                self.led.yellow()
+            elif led_level == 2:
+                self.led.green()
+
+            if dm_level == 10:
+                self.logger.info("BlinkyThread: FLASH, AHHHAAAAA!")
+                self.dot_matrix.flash(5)
+            else:
+                self.dot_matrix.level(dm_level)
+
+            time.sleep(self.sleep_timer)
 
 
 def main(opts):
@@ -469,11 +521,12 @@ def main(opts):
     }
 
     servo_state = "closed"
-    srv = mech.Servo(18,90)
+    srv = mech.Servo(18)
     srv.close()
 
-    led = visual.Led(15,16)
-    led.red()
+    led = visual.Led(13,16)
+
+    dot_matrix = visual.DotMatrix()
 
     input_device = True
     if opts.pi:
@@ -490,14 +543,20 @@ def main(opts):
 
     dq_alltones = deque(maxlen=1000)
     dq_alltones_insta = deque(maxlen=1000)
+    dq_led = deque(maxlen=100)
+    dq_matrix = deque(maxlen=100)
 
-    analyser = AnalyzeThread(dq_alltones, servo_state, srv, base_notes_only=opts.base_notes_only, debug=opts.debug)
+    analyser = AnalyzeThread(dq_alltones, servo_state, srv, dq_matrix, base_notes_only=opts.base_notes_only, debug=opts.debug)
     analyser.daemon = True
     analyser.start()
 
-    analyser_insta = InstaAnalyzeThread(dq_alltones_insta, led, base_notes_only=opts.base_notes_only, debug=opts.debug)
+    analyser_insta = InstaAnalyzeThread(dq_alltones_insta, dq_led, base_notes_only=opts.base_notes_only, debug=opts.debug)
     analyser_insta.daemon = True
     analyser_insta.start()
+
+    blinky = BlinkyThread(dq_led, dq_matrix, led, dot_matrix)
+    blinky.daemon = True
+    blinky.start()
 
     if opts.dummy:
         dummy(dq_alltones)

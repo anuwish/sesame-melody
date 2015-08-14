@@ -7,11 +7,20 @@ http://raspberrypi.stackexchange.com/questions/19705/usb-card-as-my-default-audi
 
 ## LED
 
-LED (Kingbright, L-115WEGW bi-color LED) is up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module, see [led-test.py](/led-test.py). 
+LED (Kingbright, L-115WEGW bi-color LED) is up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module.
 
 ### Wiring
 * PIN14 GND (longest/center LED pin)
-* PIN15 RED (next longest/right LED pin)
+* PIN13 RED (next longest/right LED pin)
+* PIN16 GREEN (shortest/left LED pin)
+
+## Dot Matrix Display
+
+Dot Matrix Display (Kingbright, TA07-11SRWA, 5x7) up and running using the [RPi.GPIO](https://pypi.python.org/pypi/RPi.GPIO) python module. 
+
+### Wiring
+* PIN14 GND (longest/center LED pin)
+* PIN13 RED (next longest/right LED pin)
 * PIN16 GREEN (shortest/left LED pin)
 
 ## Servo
