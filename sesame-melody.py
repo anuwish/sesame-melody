@@ -213,7 +213,6 @@ class NoteDetector(threading.Thread):
         median_buffer = [ ]
         run = True
         found_onset = False
-        silence_duration = 0
         silence_begin = 0
         silence_end = 0
         while run:
@@ -230,21 +229,25 @@ class NoteDetector(threading.Thread):
                     self.logger.debug("NoteDetector: Found an onset! Starting to fill the buffer!")
                     found_onset = True
                     median_buffer.append(pitch)
+                    silence_begin = 0
+                    silence_end = 0
                 else:
-                    silence_duration += 1
-                    if silence_duration*self.pitch_seconds_per_block > self.duration_until_silence:
+                    silence_end = time.time()
+                    if (silence_end-silence_begin) > self.duration_until_silence:
+                        self.logger.debug("NoteDetector: Found Silence of %f", silence_end-silence_begin)
                         self.dq_external.append(-10)
                         self.dq_external_insta.append(-10)
-                        silence_duration = 0
+                        silence_begin = 0
+                        seilence_end = 0
                 continue
             else:
                 if onset > 0. or level == 1.:
-                    if level == 1.:
+                   self.logger.debug("Found a new onset or silence! Start analysing notes in buffer.")
+                   silence_end = 0
+                   if level == 1.:
                         found_onset = False
-                        silence_duration = 1
                         silence_begin = time.time()
-                    #print "Found a new onset or silence! Start analysing notes in buffer."
-                    if median_buffer: # check that buffer is not empty
+                   if median_buffer: # check that buffer is not empty
                         med_pitch_array = np.around(np.array(median_buffer))
                         med_pitch = np.median(med_pitch_array)
                         self.dq_external.append(med_pitch)
