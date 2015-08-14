@@ -345,7 +345,7 @@ class AnalyzeThread(threading.Thread):
                 sm=difflib.SequenceMatcher(None,self.target_pitch,list_tones)
                 sm_lo=difflib.SequenceMatcher(None,self.target_pitch,list_tones_lo)
                 sm_hi=difflib.SequenceMatcher(None,self.target_pitch,list_tones_hi)
-                dm_level = int(sm.ratio() / self.threshold_detected * 7.0)
+                dm_level = int((sm.ratio()-0.2) / (self.threshold_detected-0.2) * 7.0 * 1.05)
                 if sm.ratio() > self.max_ratio:
                     self.max_ratio = sm.ratio()
                 if self.debug:
