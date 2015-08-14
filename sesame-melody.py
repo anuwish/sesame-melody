@@ -213,8 +213,8 @@ class NoteDetector(threading.Thread):
         median_buffer = [ ]
         run = True
         found_onset = False
-        silence_begin = 0
-        silence_end = 0
+        silence_begin = time.time()
+        silence_end = None
         while run:
             samples = self.source.get_next_chunk()
             level = self.level_alg(samples)
@@ -229,21 +229,21 @@ class NoteDetector(threading.Thread):
                     self.logger.debug("NoteDetector: Found an onset! Starting to fill the buffer!")
                     found_onset = True
                     median_buffer.append(pitch)
-                    silence_begin = 0
-                    silence_end = 0
+                    silence_begin = None
+                    silence_end = None
                 else:
                     silence_end = time.time()
-                    if (silence_end-silence_begin) > self.duration_until_silence:
-                        self.logger.debug("NoteDetector: Found Silence of %f", silence_end-silence_begin)
+                    silence_duration = silence_end - silence_begin
+                    if silence_duration > self.duration_until_silence:
+                        self.logger.debug("NoteDetector: Found Silence of %f", silence_duration)
                         self.dq_external.append(-10)
                         self.dq_external_insta.append(-10)
-                        silence_begin = 0
-                        seilence_end = 0
+                        silence_begin = time.time()
+                        silence_end = None
                 continue
             else:
                 if onset > 0. or level == 1.:
                    self.logger.debug("Found a new onset or silence! Start analysing notes in buffer.")
-                   silence_end = 0
                    if level == 1.:
                         found_onset = False
                         silence_begin = time.time()
